@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { safeNext } from "@/lib/next-path";
 import { originOf } from "@/lib/origin";
 import { createClient } from "@/lib/supabase/server";
 
-// Google から一度きりのコードを持って戻ってくる。セッションに引き換えて、トップへ送る
+// Google から一度きりのコードを持って戻ってくる。セッションに引き換えて、元の行き先へ送る
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const origin = originOf(request);
@@ -19,5 +20,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=exchange_failed`);
   }
 
-  return NextResponse.redirect(`${origin}/`);
+  return NextResponse.redirect(`${origin}${safeNext(searchParams.get("next"))}`);
 }

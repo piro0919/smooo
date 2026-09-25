@@ -4,8 +4,8 @@
 
 Looks like an ordinary chat app, except that people cannot post their own words. The spec was
 settled in one long discussion on 2026-09-26. So far there is sign-in, organisations, channels, and
-posting: what someone types is rewritten by Sonnet 5 and only the rewrite reaches the channel.
-AIs do not talk to each other yet.
+posting — what someone types is rewritten by Sonnet 5 and only the rewrite reaches the
+channel — and invite links. AIs do not talk to each other yet.
 
 ## The core
 
@@ -26,6 +26,8 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 | `supabase/migrations/` | Organisations, profiles, memberships, channels, channel members, and who can see what |
 | `supabase/tests/rls_test.sql` | pgTAP tests for the above. Outsiders must never reach an internal channel |
 | `src/proxy.ts` | Refreshes the Supabase session on every request and sends signed-out people to `/login` |
+| `supabase/tests/invites_test.sql` | Invites: none for internal channels, expired links refused, outsiders land in one channel only |
+| `src/app/join/[token]/` | Where an invite link lands. Signed-out people go through `/login` and come back |
 | `supabase/tests/messages_test.sql` | Nobody can write a post directly, and only the author reads what they typed |
 | `src/app/o/[orgId]/` | The Slack-shaped screen: organisation rail, channel list, channel |
 | `src/app/o/[orgId]/c/[channelId]/actions.ts` | Posting: check membership, rewrite, then write with the secret key |
@@ -63,8 +65,15 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 - **Realtime needs the access token before subscribing.** Without `realtime.setAuth`, the
   socket joins as anonymous, the subscription reports success, and row level security
   silently drops every event.
-- **Everyone gets a personal organisation at sign-up.** A company organisation is joined later
-  by invitation, which does not exist yet.
+- **Everyone gets a personal organisation at sign-up.** A company organisation is created from
+  the `+` on the rail, or joined through an invite link.
+- **Two kinds of invite link, both valid for seven days.** One makes you a member of the
+  organisation. The other, only for channels open to outsiders, puts you in that one channel.
+  Accepting goes through `accept_invite`, a security definer function, because the person
+  accepting cannot yet read the invite row.
+- **An outsider sees a shared channel in their own sidebar,** under "社外とのチャンネル", with
+  the inviting company's name — the way Slack Connect shows it, without guest types. They can
+  read that company's name and nothing else: not its other channels, not its member list.
 
 ## Key decisions
 

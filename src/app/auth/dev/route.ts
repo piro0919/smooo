@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { safeNext } from "@/lib/next-path";
 import { originOf } from "@/lib/origin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,5 +22,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(`Run scripts/dev-session.mjs ${email} first.`, { status: 400 });
   }
 
-  return NextResponse.redirect(`${originOf(request)}/`);
+  return NextResponse.redirect(
+    `${originOf(request)}${safeNext(request.nextUrl.searchParams.get("next"))}`,
+  );
 }

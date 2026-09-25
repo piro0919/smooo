@@ -109,6 +109,55 @@ export type Database = {
           },
         ]
       }
+      invites: {
+        Row: {
+          channel_id: string | null
+          created_at: string
+          created_by: string
+          expires_at: string
+          organization_id: string
+          token: string
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          organization_id: string
+          token?: string
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          organization_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invites_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memberships: {
         Row: {
           created_at: string
@@ -274,7 +323,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      accept_invite: {
+        Args: { invite_token: string }
+        Returns: {
+          channel_id: string
+          organization_id: string
+        }[]
+      }
+      create_organization: { Args: { name: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

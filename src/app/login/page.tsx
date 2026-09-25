@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeNext } from "@/lib/next-path";
 import { LoginButton } from "./LoginButton";
 
 const ERRORS: Record<string, string> = {
@@ -12,9 +13,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) redirect("/");
+  const { error, next: nextParam } = await searchParams;
+  const next = safeNext(typeof nextParam === "string" ? nextParam : undefined);
+  if (user) redirect(next);
 
-  const { error } = await searchParams;
   const message = typeof error === "string" ? ERRORS[error] : undefined;
 
   return (
@@ -23,7 +25,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <h1 className="text-4xl font-bold tracking-tight">Smooo</h1>
         <p className="text-muted-foreground">打ったとおりには、投稿されないチャット</p>
       </div>
-      <LoginButton />
+      <LoginButton next={next} />
       {message && <p className="text-sm text-destructive">{message}</p>}
     </main>
   );

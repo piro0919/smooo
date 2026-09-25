@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
-import { Globe, Hash } from "lucide-react";
+import { Globe, Hash, UserPlus } from "lucide-react";
 import { Composer } from "@/components/Composer";
 import { LiveRefresh } from "@/components/LiveRefresh";
+import { InviteDialog } from "@/components/InviteDialog";
 import { MessageList } from "@/components/MessageList";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -14,15 +15,18 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
   const [{ data: channel }, { data: auth }] = await Promise.all([
     supabase
       .from("channels")
-      .select("id, name, audience, organization_id, channel_members(user_id)")
+      .select("id, name, audience, organization_id, organizations(name), channel_members(user_id)")
       .eq("id", channelId)
       .maybeSingle(),
     supabase.auth.getUser(),
   ]);
 
-  if (!channel || channel.organization_id !== orgId) notFound();
+  if (!channel) notFound();
 
   const isMember = channel.channel_members.some((m) => m.user_id === auth.user?.id);
+  // よその会社のチャンネルは、招かれて参加している社外とのチャンネルだけ開ける
+  const isGuest = channel.organization_id !== orgId;
+  if (isGuest && !(channel.audience === "external" && isMember)) notFound();
   const Icon = channel.audience === "external" ? Globe : Hash;
 
   // 新しい順に100件取り、古い順に並べ直す
@@ -48,8 +52,26 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
       <header className="flex h-12 shrink-0 items-center gap-2 border-b px-5">
         <Icon className="size-4" />
         <h2 className="truncate text-lg font-bold">{channel.name}</h2>
-        {channel.audience === "external" && (
-          <span className="text-sm text-muted-foreground">社外の人も参加できます</span>
+        {isGuest ? (
+          <span className="text-sm text-muted-foreground">{channel.organizations?.name} とのチャンネル</span>
+        ) : (
+          channel.audience === "external" && (
+            <>
+              <span className="text-sm text-muted-foreground">社外の人も参加できます</span>
+              <InviteDialog
+                orgId={orgId}
+                channelId={channelId}
+                title="社外の人を招待する"
+                description={`このリンクから入った人は、#${channel.name} にだけ参加します。ほかのチャンネルや社内の人の一覧は見えません。`}
+                trigger={
+                  <button className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-sm hover:bg-zinc-100" />
+                }
+              >
+                <UserPlus className="size-4" />
+                社外の人を招待
+              </InviteDialog>
+            </>
+          )
         )}
       </header>
       {isMember ? (
