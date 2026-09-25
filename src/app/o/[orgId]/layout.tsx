@@ -7,6 +7,7 @@ import { CreateChannelDialog } from "@/components/CreateChannelDialog";
 import { CreateOrgDialog } from "@/components/CreateOrgDialog";
 import { InviteDialog } from "@/components/InviteDialog";
 import { LiveSidebar } from "@/components/LiveSidebar";
+import { Avatar } from "@/components/Avatar";
 import { MembersDialog } from "@/components/MembersDialog";
 import { OrgShell } from "@/components/OrgShell";
 import { SettingsDialog } from "@/components/SettingsDialog";
@@ -55,16 +56,16 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
       .neq("organization_id", orgId)
       .order("name"),
     supabase.from("questions").select("id", { count: "exact", head: true }).eq("status", "open"),
-    supabase.from("profiles").select("display_name, autonomy, onboarded_at").eq("id", userId).single(),
+    supabase.from("profiles").select("display_name, avatar_url, autonomy, onboarded_at").eq("id", userId).single(),
     // 自分の DM。相手の名前を出すので参加者も取る
     supabase
       .from("channels")
-      .select("id, channel_members(user_id, profiles(display_name))")
+      .select("id, channel_members(user_id, profiles(display_name, avatar_url))")
       .eq("organization_id", orgId)
       .eq("kind", "dm"),
     supabase
       .from("memberships")
-      .select("user_id, role, profiles(display_name)")
+      .select("user_id, role, profiles(display_name, avatar_url)")
       .eq("organization_id", orgId),
     supabase.rpc("unread_channel_ids"),
   ]);
@@ -84,15 +85,16 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
     c.channel_members.some((m) => m.user_id === userId);
   const joined = (channels ?? []).filter(isMember);
   const dmList = (dms ?? [])
-    .map((d) => ({
-      id: d.id,
-      name: d.channel_members.find((m) => m.user_id !== userId)?.profiles?.display_name ?? "?",
-    }))
+    .map((d) => {
+      const other = d.channel_members.find((m) => m.user_id !== userId)?.profiles;
+      return { id: d.id, name: other?.display_name ?? "?", avatarUrl: other?.avatar_url ?? null };
+    })
     .sort((a, b) => a.name.localeCompare(b.name, "ja"));
   const members = (orgPeople ?? [])
     .map((m) => ({
       id: m.user_id,
       name: m.profiles?.display_name ?? "?",
+      avatarUrl: m.profiles?.avatar_url ?? null,
       owner: m.role === "owner",
       me: m.user_id === userId,
     }))
@@ -182,9 +184,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
             {dmList.map((d) => (
               <li key={d.id}>
                 <Link href={`/o/${orgId}/c/${d.id}`} className={itemFor(d.id)}>
-                  <span className="flex size-4 shrink-0 items-center justify-center rounded-sm bg-white/20 text-[10px] font-bold">
-                    {d.name.slice(0, 1)}
-                  </span>
+                  <Avatar name={d.name} url={d.avatarUrl} className="size-4 rounded-sm bg-white/20 text-[10px]" />
                   <span className="truncate">{d.name}</span>
                 </Link>
               </li>
@@ -211,7 +211,12 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
           )}
         </div>
         <div className="grid border-t border-white/10 p-2">
-          <SettingsDialog autonomy={me?.autonomy ?? "standard"} name={me?.display_name ?? ""} />
+          <SettingsDialog
+            autonomy={me?.autonomy ?? "standard"}
+            name={me?.display_name ?? ""}
+            userId={userId}
+            avatarUrl={me?.avatar_url ?? null}
+          />
           <form action="/auth/signout" method="post">
             <button className="w-full rounded-md px-3 py-1 text-left text-sm hover:bg-white/10">
               ログアウト

@@ -23,3 +23,20 @@ export async function saveSettings(_prev: SettingsState, formData: FormData): Pr
   revalidatePath("/", "layout");
   return { saved: Date.now() };
 }
+
+// アイコンの URL を保存する。自分のフォルダに置いた、この Supabase の画像だけを受け付ける
+export async function setAvatar(url: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "ログインが切れています。" };
+
+  const prefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${user.id}/`;
+  if (!url.startsWith(prefix)) return { error: "この画像は使えません。" };
+
+  const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+  if (error) return { error: "保存できませんでした。" };
+  revalidatePath("/", "layout");
+  return {};
+}

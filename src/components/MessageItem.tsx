@@ -1,4 +1,5 @@
 import type { MessageItem as Item } from "@/lib/messages";
+import { Avatar } from "./Avatar";
 import { MessageActions } from "./MessageActions";
 import { QuestionCard } from "./QuestionCard";
 
@@ -26,9 +27,7 @@ export function MessageItem({ m, userId, orgId }: { m: Item; userId: string; org
       className="group relative flex gap-2 px-4 py-2 outline-none hover:bg-zinc-50 focus:bg-zinc-50 md:px-5"
     >
       <MessageActions id={m.id} author={m.author} body={m.body} mine={m.author_id === userId} />
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-[#4a154b] text-sm font-bold text-white">
-        {m.author.slice(0, 1)}
-      </div>
+      <Avatar name={m.author} url={m.avatarUrl} />
       <div className="min-w-0">
         <p className="flex items-baseline gap-2">
           <span className="font-bold">{m.author}</span>

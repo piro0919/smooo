@@ -27,6 +27,7 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 | `supabase/migrations/` | Organisations, profiles, memberships, channels, channel members, and who can see what |
 | `supabase/tests/rls_test.sql` | pgTAP tests for the above. Outsiders must never reach an internal channel |
 | `src/proxy.ts` | Refreshes the Supabase session on every request and sends signed-out people to `/login` |
+| `supabase/tests/avatars_test.sql` | Nobody can put an image in someone else's avatar folder |
 | `supabase/tests/reads_test.sql` | Unread counts only other people's posts and clears on opening |
 | `supabase/tests/dms_test.sql` | A DM is invisible to everyone but its two people; one DM per pair |
 | `supabase/tests/invites_test.sql` | Invites: none for internal channels, expired links refused, outsiders land in one channel only |
@@ -144,7 +145,11 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 - **Members are listed from "⋯" next to the organisation name, where you can also leave.**
   `leave_organization` also takes you out of that company's channels and DMs. Nobody can leave
   their personal organisation, and the last owner cannot leave a company — nobody would be
-  left to run it. Names change in 設定; avatars wait for file storage.
+  left to run it. Names and avatars change in 設定.
+- **Avatars live in the public `avatars` bucket, under a folder named after the user id.**
+  Storage policies only let people write into their own folder, and `setAvatar` only accepts a
+  URL inside it — otherwise someone could wear another person's face. Images are shown with
+  `unoptimized`, since Next will not optimise images from 127.0.0.1.
 - **Two kinds of invite link, both valid for seven days.** One makes you a member of the
   organisation. The other, only for channels open to outsiders, puts you in that one channel.
   Accepting goes through `accept_invite`, a security definer function, because the person

@@ -8,6 +8,7 @@ export type MessageItem = {
   author_id: string;
   corrects: string | null;
   author: string;
+  avatarUrl: string | null;
   parent: { author: string; body: string } | null;
   // 本人にだけ見える原文。AI が書いた投稿ならその下書き
   source: { text: string; kind: string } | null;
@@ -26,7 +27,7 @@ export async function loadMessages(
   let query = supabase
     .from("messages")
     .select(
-      "id, body, created_at, author_id, corrects, profiles!messages_author_id_fkey(display_name), parent:reply_to(body, profiles!messages_author_id_fkey(display_name))",
+      "id, body, created_at, author_id, corrects, profiles!messages_author_id_fkey(display_name, avatar_url), parent:reply_to(body, profiles!messages_author_id_fkey(display_name))",
     )
     .eq("channel_id", channelId)
     .order("created_at", { ascending: false })
@@ -76,6 +77,7 @@ export async function loadMessages(
     author_id: m.author_id,
     corrects: m.corrects,
     author: m.profiles?.display_name ?? "（不明）",
+    avatarUrl: m.profiles?.avatar_url ?? null,
     parent: m.parent ? { author: m.parent.profiles?.display_name ?? "?", body: m.parent.body } : null,
     source: sourceById.get(m.id) ?? null,
     reactions: [...(reactionsById.get(m.id) ?? new Map())],

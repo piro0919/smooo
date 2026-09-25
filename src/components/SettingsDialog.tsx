@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { AvatarUpload } from "./AvatarUpload";
 
 const CHOICES = [
   {
@@ -35,7 +36,17 @@ const CHOICES = [
   },
 ];
 
-export function SettingsDialog({ autonomy, name }: { autonomy: string; name: string }) {
+export function SettingsDialog({
+  autonomy,
+  name,
+  userId,
+  avatarUrl,
+}: {
+  autonomy: string;
+  name: string;
+  userId: string;
+  avatarUrl: string | null;
+}) {
   const [state, action, pending] = useActionState<SettingsState, FormData>(saveSettings, {});
 
   return (
@@ -53,6 +64,10 @@ export function SettingsDialog({ autonomy, name }: { autonomy: string; name: str
           <DialogHeader>
             <DialogTitle>設定</DialogTitle>
           </DialogHeader>
+          <div className="grid gap-2">
+            <p className="text-sm font-medium">アイコン</p>
+            <AvatarUpload userId={userId} name={name} url={avatarUrl} />
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="display-name">名前</Label>
             <Input id="display-name" name="display_name" defaultValue={name} key={name} required />
