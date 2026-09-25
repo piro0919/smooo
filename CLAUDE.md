@@ -2,103 +2,144 @@
 
 # Smooo
 
-見た目は普通のチャット。ただし人間は自分の文章では投稿できない。2026-09-26 に壁打ちで仕様を決め、土台を作った。
+Looks like an ordinary chat app, except that people cannot post their own words. The spec was
+settled in one long discussion on 2026-09-26, and only the project skeleton exists so far.
 
-## 芯
+## The core
 
-**人間が読む回数と考える回数を減らす。** 人間同士の煩わしさとノイズを、仕事のやり取りから消す。
+**Cut down how often people have to read and think.** Take the friction and noise of working
+with other people out of work chat.
 
-一人に一体の AI が付き、AI 同士が会話を進める。人間は打ちたいことを雑に打ち、表示されるのは AI が整えた文面になる。AI が答えられないときだけ、人間に質問が来る。
+Everyone has one AI. The AIs carry the conversation between themselves. A person types what
+they want to say, however roughly, and what shows up in the channel is the message their AI
+wrote. A person is only asked something when their AI cannot answer on its own.
 
-価値は「書かなくてよい」ではなく「読まなくてよい、考えなくてよい」の側にある。「AI が文章を整えてくれるチャット」と打ち出すと、ChatGPT で整形して Slack に貼るのと比べられて負ける。
+The value is "you don't have to read or think", not "you don't have to write". Pitch it as "a
+chat app where AI polishes your messages" and it loses to pasting ChatGPT output into Slack.
 
-## 決めたこと
+## Key decisions
 
-### 位置づけ
+### Positioning
 
-- 最終的には toB。序盤はエンタメ寄りの位置づけで出す
-- 最初から一般公開する。公開先は `smooo.kkweb.io`。toB に寄せる段階で専用ドメインに移す。`smooo.app` と `smooo.chat` は 2026-09-26 時点で空いていた
-- Slack の上ではなく独立したツールとして作る。Slack の上だと人間が素の文章を投稿できてしまう
-- Web と PWA。iPhone の通知はホーム画面に追加したときだけ届くので、使い始めに追加まで案内する
+- **Ends up B2B; starts out as something fun to play with.**
+- **Public from day one** at `smooo.kkweb.io`. Move to its own domain when it turns B2B.
+  `smooo.app` and `smooo.chat` were free on 2026-09-26.
+- **A standalone app, not a Slack add-on.** On top of Slack, people could still post raw text,
+  and the core would not hold.
+- **Web plus PWA.** iPhone only delivers notifications to a PWA added to the home screen, so
+  onboarding has to walk people through adding it.
 
-### 会話
+### Conversation
 
-- 全員が Smooo を使う前提。どの AI の発言にも責任を持つ人間がいる。bot は置かない
-- 入力欄は普通のチャットと同じ。打った原文と、表示される文面が違う
-- 原文は本人だけが見られる。管理者にも見せるかは toB に移る段階で決め、入れるなら利用者に明示する
-- 口調は丁寧語で揃える
-- 過去の投稿は直さない。訂正は投稿を追加する形で行う
-- リアクションも AI が行う
-- 構成は Slack と同じチャンネルと DM。話題ごとの紐付けは裏側で AI が持ち、画面上は返信先の引用だけ出す（仮置き）
+- **Everyone is on Smooo, and every AI has a human who answers for what it says.** No bots.
+- **The input box is an ordinary chat input.** What you type and what gets shown differ.
+- **Only the author can see what they originally typed.** Whether admins can too is decided
+  when it turns B2B, and if they can, users are told.
+- **Messages are polite Japanese (丁寧語) throughout.**
+- **Posts are never edited.** A correction is a new post.
+- **Reactions are the AI's job too.**
+- **Channels and DMs, like Slack.** The AI keeps track of which topic each post belongs to;
+  the screen only shows a quote of the post being replied to. This is provisional.
 
-### 人間への質問
+### Asking the human
 
-- AI が答えられないときだけ人間に質問し、材料が揃ったら整形して送る
-- 答え方は選択肢が基本。最後の「その他」を押したときだけ文章を入力する
-- 答えを待つ話題があっても、ほかの話題は止めずに進める
-- 期限は本文に指定があればそれに従い、なければ AI が急ぎ具合から決める
-- 期限を過ぎたら AI が Yes, and で代わりに返す。約束を含めてよく、AI が推測したという印も付けない。結果の責任は答えなかった人が負う。答えないと自分の名前で話が進むことが、返事をする動機になる
+- **The AI asks only when it cannot answer**, and posts once it has what it needs.
+- **Answers are mostly buttons.** A text box opens only behind the last option, "Other".
+- **An open question does not stop other topics.**
+- **Deadlines come from the message if it names one**; otherwise the AI picks one from how
+  urgent it looks.
+- **Past the deadline, the AI answers in the person's place, in a yes-and way.** It may make
+  commitments, and nothing marks the reply as a guess. The person who did not answer owns the
+  result. Having things move forward in your name is the reason to answer.
 
-### 判定
+### Deciding when to ask
 
-- 「AI が人間に聞かずに答えてよいか」を判定する。線引きは各自の設定にし、「慎重・標準・任せる」のような段階で見せる
-- 判定には TypeSafe の Jev を使うつもりだった。2026-09-26 時点で新規登録が止まっているので、当面は言語モデルで代用する
+- **A classifier decides whether the AI may answer without asking.** Each person sets the
+  threshold, shown as steps such as careful / normal / let it go.
+- **The plan was TypeSafe's Jev.** Sign-ups were closed on 2026-09-26, so a language model
+  stands in for now.
 
-### 記憶
+### Memory
 
-- 人間が答えた内容を AI が覚えて、次から使う
-- 覚えた内容は画面に出さない。間違いは、チャットに訂正を追加したときに書き換わる
-- 記憶は三つに分ける。内部用は社内で覚えたもので社内だけで使う。外部用は社外に出してよい一般的な情報。相手専用は、その相手との共有チャンネルで覚えたもので、その相手とのやり取りでだけ使う
-- 使い始めは選択肢形式の数問から始め、あとは使いながら覚える
+- **What a person answers, the AI remembers and reuses.**
+- **Memory is never shown.** It is rewritten when someone posts a correction in the chat.
+- **Three kinds of memory.** Internal: learned inside the organisation, used only there.
+  External: general facts that are fine to share with anyone. Per-counterpart: learned in a
+  channel shared with one organisation, used only with that organisation.
+- **Onboarding is a few multiple-choice questions**; the rest is learned along the way.
 
-### 組織と社外
+### Organisations and outsiders
 
-- 全員が必ずどこかの Organization に属する。個人事業主はサインアップ時に一人だけの Organization が自動でできる
-- チャンネルは Organization に属し、「社内だけ」か「社外の人も入れる」かを決める。社内だけのチャンネルには社外の人を招待できない
-- 人に対するゲストの種類は作らない。Slack コネクトの外部ゲストやシングルチャネルゲストのような区分が嫌われた理由
+- **Everyone belongs to an organisation.** A sole trader gets a one-person organisation at
+  sign-up.
+- **Channels belong to an organisation and are either internal or open to outsiders.**
+  Outsiders cannot be invited to an internal channel.
+- **No guest types.** Slack Connect's external and single-channel guests were exactly what
+  made it unpleasant.
 
-### 費用
+### Cost
 
-- AI の費用は運営が持つ。各自の API キーを入れる方式はとらない。ChatGPT や Claude の月額課金には API キーが含まれないので、各自キー方式にしても二重払いは解消しない
-- 無料版は月あたりの投稿数に上限。有料版は月額に上限を含め、超えた分は追加料金
-- 上限は Organization ごとに数える。各 AI の投稿は、その持ち主が属する Organization の枠から減る
-- 費用の大半は AI に読ませる入力。読ませる量を同じ話題の投稿に絞る
+- **Smooo pays for the AI. No bring-your-own-key.** ChatGPT and Claude subscriptions do not
+  include an API key, so BYOK would not spare anyone a second bill anyway.
+- **Free plan: a monthly cap on posts. Paid plan: a monthly fee that includes a cap, then
+  pay for what goes over.**
+- **Caps are counted per organisation.** Each AI's posts come out of its owner's
+  organisation. Usage per person varies by orders of magnitude — about one post a day to a
+  thousand — and pooling absorbs that.
+- **Most of the cost is input.** Keep what the model reads down to posts in the same topic.
 
-### 整形のモデル
+### Model for rewriting messages
 
-**Sonnet 5（`claude-sonnet-5`、effort low）で確定。** 2026-09-26 に `evals/format/` で Haiku 4.5 と比べた。
+**Sonnet 5 (`claude-sonnet-5`, effort low).** Compared with Haiku 4.5 in `evals/format/` on
+2026-09-26.
 
 | | Haiku 4.5 | Sonnet 5 |
-| --- | --- | --- |
-| 見ていない30件での明らかな失敗 | 3件 | 0件 |
-| 1件あたりの費用 | 0.00076ドル | 0.00153ドル |
+|---|---|---|
+| Clear failures on 30 unseen inputs | 3 | 0 |
+| Cost per message | $0.00076 | $0.00153 |
 
-Haiku は、「？」に対して整形係としての独り言を返す、上司と部下の立場を逆にする、社外に「お疲れ様です」と書く、といった失敗が、指示文で禁じたあとも残った。独り言はそのまま本人の発言として投稿されるので致命的。
+Haiku kept failing even after the prompt forbade it: it answered "？" with a note about having
+nothing to rewrite, swapped a manager and their report, and greeted a client with
+「お疲れ様です」. The note would have been posted as the person's own message.
 
-指示文は `evals/format/run.py` の `SYSTEM`。直すときは `cases2.json` でも回し直す。`cases.json` は指示文を書くときに見ているので、そこでの成績は甘く出る。
+The prompt is `SYSTEM` in `evals/format/run.py`. After changing it, run `cases2.json` as well —
+`cases.json` was in view while the prompt was written, so scores on it read high.
 
-## 保留
+## Open questions
 
-- 根拠の確認を、判定の数値とは別の固定ルールとして持つか。「出どころを示せない事実は答えず人間に聞く」という案
-- 最初に使うのは誰か
-- 通知をいつ送るか
-- 画面の構造。返信先の引用で仮置き中
-- ツール内カレンダーを公開時に入れるか。入れるなら Google カレンダーは読むだけにし、Smooo の予定は iCal の URL で Google カレンダーに購読させる
+- Whether "don't state a fact you cannot point to a source for; ask instead" becomes a fixed
+  rule, separate from the threshold.
+- Who uses it first.
+- When to send notifications.
+- The screen structure. The reply quote is a placeholder.
+- Whether an in-app calendar ships at launch. If it does, Google Calendar is read-only and
+  Smooo's events reach Google Calendar through an iCal feed it subscribes to.
 
-## 捨てたこと
+## Dropped
 
-### 外部サービスとの連携を公開時に入れる
+### Integrations at launch
 
-MCP で Gmail、Google カレンダー、ドライブにつなぐつもりだった。Gmail の読み取りは Google の制限付きの権限で、一般公開するには審査と毎年の第三者セキュリティ評価が要る。ドライブも全ファイルを読むなら同じ区分。審査前のアプリは利用者100人までで、警告画面も出る。MCP を使っても、許可を受け取るのが Smooo である限り審査は避けられない。カレンダーは審査だけで済むが、それも含めて公開時は連携なしにした。連携は、質問を減らす加速装置として後から足す。Google ログインは名前とメールだけなので残す。
+The plan was MCP connections to Gmail, Google Calendar, and Drive. Reading Gmail is a
+restricted Google scope: a public app needs verification plus a third-party security
+assessment every year. Reading all of Drive is the same tier. An unverified app is capped at
+100 users and shows a warning screen. MCP does not change this — as long as Smooo is the one
+receiving the user's grant, Smooo gets reviewed. Calendar only needs verification, but it went
+too. Integrations come later, as a way to cut down questions. Google sign-in stays; name and
+email need no review to speak of.
 
-### Slack との連携
+### Slack integration
 
-Marketplace に載っていないアプリは、2025年5月からチャンネル履歴の API が1分1回・15件までに絞られている。Slack 公式の MCP サーバーも、Marketplace 掲載か社内アプリしか使えない。審査の手間に見合わないので入れない。
+Since May 2025, apps not on the Slack Marketplace get one request a minute and 15 messages per
+call from the channel history API. Slack's official MCP server is limited to Marketplace and
+internal apps. Not worth the review.
 
-### 読まれた投稿だけ整形する
+### Rewriting only the posts someone reads
 
-AI 同士は要点だけでやり取りし、人間が画面を開いたときに初めて整形する案。費用の8割は入力で、整形の出力は2割しかないので、ほとんど下がらない。読まれる投稿では整形の呼び出しが1回増えて、かえって高くなる。
+The idea: AIs exchange terse notes and only get rewritten when a person opens the channel. About
+80% of the cost is input and only 20% is the rewritten output, so it barely saves anything, and
+a post that does get read costs an extra call.
 
-### 期限切れの代理返信に印を付ける、約束を含めない
+### Marking late answers, or keeping commitments out of them
 
-どちらも「答えなかった人が悪い」という設計を弱め、チャットの円滑さを損なう。すべての投稿が AI の文面なので、代理返信にだけ印を付けるのは一貫しない。
+Both weaken "it's on whoever didn't answer" and make the chat less smooth. Every post is written
+by an AI, so marking only the late ones is inconsistent.

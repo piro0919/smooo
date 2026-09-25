@@ -67,7 +67,7 @@ def main() -> None:
     def cell(s: str) -> str:
         return s.replace("|", "\\|").replace("\n", "<br>")
 
-    lines = ["| # | 相手 | 入力 | Haiku 4.5 | Sonnet 5 |", "| --- | --- | --- | --- | --- |"]
+    lines = ["| # | To | Input | Haiku 4.5 | Sonnet 5 |", "| --- | --- | --- | --- | --- |"]
     for c in cases:
         h, s = results[("haiku", c["id"])], results[("sonnet", c["id"])]
         lines.append(
@@ -78,8 +78,8 @@ def main() -> None:
         rs = [results[(k, c["id"])] for c in cases]
         n = len(rs)
         lines.append(
-            f"- {k}: 平均 入力{sum(r['in'] for r in rs) / n:.0f} / 出力{sum(r['out'] for r in rs) / n:.0f} トークン、"
-            f"1件 {sum(r['cost'] for r in rs) / n:.5f} ドル"
+            f"- {k}: avg input {sum(r['in'] for r in rs) / n:.0f} / output {sum(r['out'] for r in rs) / n:.0f} tokens, "
+            f"${sum(r['cost'] for r in rs) / n:.5f} per message"
         )
     (HERE / OUT).write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
