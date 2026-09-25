@@ -194,19 +194,74 @@ export type Database = {
           },
         ]
       }
+      memories: {
+        Row: {
+          channel_id: string | null
+          content: string
+          created_at: string
+          id: string
+          organization_id: string
+          scope: string
+          user_id: string
+        }
+        Insert: {
+          channel_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          scope: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          scope?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memories_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_sources: {
         Row: {
           author_id: string
+          kind: string
           message_id: string
           raw_text: string
         }
         Insert: {
           author_id: string
+          kind?: string
           message_id: string
           raw_text: string
         }
         Update: {
           author_id?: string
+          kind?: string
           message_id?: string
           raw_text?: string
         }
@@ -234,6 +289,7 @@ export type Database = {
           channel_id: string
           created_at: string
           id: string
+          origin: string
           reply_to: string | null
         }
         Insert: {
@@ -242,6 +298,7 @@ export type Database = {
           channel_id: string
           created_at?: string
           id?: string
+          origin?: string
           reply_to?: string | null
         }
         Update: {
@@ -250,6 +307,7 @@ export type Database = {
           channel_id?: string
           created_at?: string
           id?: string
+          origin?: string
           reply_to?: string | null
         }
         Relationships: [
@@ -317,6 +375,70 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      questions: {
+        Row: {
+          answer: string | null
+          answered_at: string | null
+          channel_id: string
+          created_at: string
+          deadline: string
+          id: string
+          message_id: string
+          options: Json
+          prompt: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          answer?: string | null
+          answered_at?: string | null
+          channel_id: string
+          created_at?: string
+          deadline: string
+          id?: string
+          message_id: string
+          options?: Json
+          prompt: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          answer?: string | null
+          answered_at?: string | null
+          channel_id?: string
+          created_at?: string
+          deadline?: string
+          id?: string
+          message_id?: string
+          options?: Json
+          prompt?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

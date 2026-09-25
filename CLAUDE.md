@@ -5,7 +5,9 @@
 Looks like an ordinary chat app, except that people cannot post their own words. The spec was
 settled in one long discussion on 2026-09-26. So far there is sign-in, organisations, channels, and
 posting — what someone types is rewritten by Sonnet 5 and only the rewrite reaches the
-channel — and invite links. AIs do not talk to each other yet.
+channel — invite links, and the AI answering for people: when someone is asked something, their
+AI answers from memory or asks them first. Answering for someone past the deadline is not
+built yet.
 
 ## The core
 
@@ -31,6 +33,10 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 | `supabase/tests/messages_test.sql` | Nobody can write a post directly, and only the author reads what they typed |
 | `src/app/o/[orgId]/` | The Slack-shaped screen: organisation rail, channel list, channel |
 | `src/app/o/[orgId]/c/[channelId]/actions.ts` | Posting: check membership, rewrite, then write with the secret key |
+| `src/lib/ai/respond.ts` | Who has to answer a post, whether their AI can answer or must ask, and drafting from an answer |
+| `src/lib/ai/pipeline.ts` | Runs the above after a post or an answer, and posts in the person's name |
+| `src/app/o/[orgId]/questions/` | "あなたへの質問": what the AI needs from you, answered with one tap |
+| `supabase/tests/questions_test.sql` | Questions are readable only by the person asked; memory by nobody |
 | `src/lib/ai/format-system.md` | The rewriting prompt. `evals/format/run.py` reads the same file |
 | `evals/format/` | The prompt that rewrites what people type, and how it was chosen |
 | `scripts/dev-session.mjs`, `src/app/auth/dev/` | A local test user and a dev-only way in, to check screens without Google |
@@ -65,6 +71,20 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 - **Realtime needs the access token before subscribing.** Without `realtime.setAuth`, the
   socket joins as anonymous, the subscription reports success, and row level security
   silently drops every event.
+- **After a human post, the AI works in `after()`,** so the poster is not kept waiting. One call
+  picks who has to answer; then, per person, one call decides "answer from memory" or "ask".
+  Either way something is posted in their name: the answer, or "確認して返します". Answering a
+  question saves it to memory and posts the reply. Roughly 5 seconds end to end.
+- **AI drafts go through the same rewriting prompt as typed text.** The deciding model writes
+  what the person would have typed, and `formatMessage` polishes it. One prompt to evaluate.
+- **AIs do not react to AI posts.** `messages.origin` is `human` or `ai`, and only `human` posts
+  set anything off. Without this two AIs can keep thanking each other forever.
+- **Nothing on screen says a post was written by an AI** — except to its author, where the
+  "原文" toggle becomes "あなたの AI が書きました" and shows the draft.
+- **Memory is saved with the scope of where it was learned.** Internal channels feed internal
+  memory, used across the organisation's internal channels. A channel open to outsiders keeps
+  its own memory, used only there. General "fine to tell anyone" memory needs a classifier and
+  is not built.
 - **Everyone gets a personal organisation at sign-up.** A company organisation is created from
   the `+` on the rail, or joined through an invite link.
 - **Two kinds of invite link, both valid for seven days.** One makes you a member of the

@@ -4,6 +4,7 @@ type Message = {
   created_at: string;
   author_id: string;
   profiles: { display_name: string; avatar_url: string | null } | null;
+  parent: { body: string; profiles: { display_name: string } | null } | null;
 };
 
 const time = new Intl.DateTimeFormat("ja-JP", {
@@ -13,13 +14,14 @@ const time = new Intl.DateTimeFormat("ja-JP", {
 });
 
 // Slack と同じく、四角いアイコン、太字の名前、薄い時刻、本文の順。
-// 自分の投稿にだけ、打った原文を開ける「原文」を付ける
+// 自分の投稿にだけ、打った原文を開ける「原文」を付ける。AI が代わりに書いた投稿なら、その下書き。
+// ほかの人には、AI が書いたかどうかは見せない
 export function MessageList({
   messages,
   sources,
 }: {
   messages: Message[];
-  sources: Map<string, string>;
+  sources: Map<string, { text: string; kind: string }>;
 }) {
   if (messages.length === 0) {
     return (
@@ -35,7 +37,7 @@ export function MessageList({
       <ol>
         {messages.map((m) => {
           const name = m.profiles?.display_name ?? "（不明）";
-          const raw = sources.get(m.id);
+          const source = sources.get(m.id);
           return (
             <li key={m.id} className="flex gap-2 px-5 py-2 hover:bg-zinc-50">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-[#4a154b] text-sm font-bold text-white">
@@ -48,11 +50,18 @@ export function MessageList({
                     {time.format(new Date(m.created_at))}
                   </time>
                 </p>
+                {m.parent && (
+                  <p className="mb-1 truncate border-l-2 border-zinc-300 pl-2 text-xs text-muted-foreground">
+                    {m.parent.profiles?.display_name}: {m.parent.body}
+                  </p>
+                )}
                 <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.body}</p>
-                {raw && (
+                {source && (
                   <details className="mt-1 text-xs text-muted-foreground">
-                    <summary className="cursor-pointer select-none">原文</summary>
-                    <p className="mt-1 whitespace-pre-wrap rounded bg-zinc-100 px-2 py-1">{raw}</p>
+                    <summary className="cursor-pointer select-none">
+                      {source.kind === "ai" ? "あなたの AI が書きました" : "原文"}
+                    </summary>
+                    <p className="mt-1 whitespace-pre-wrap rounded bg-zinc-100 px-2 py-1">{source.text}</p>
                   </details>
                 )}
               </div>

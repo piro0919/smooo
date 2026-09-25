@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { respondToMessage } from "@/lib/ai/pipeline";
 import { formatMessage } from "@/lib/ai/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -8,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 export type PostState = { error?: string; raw?: string; sent?: number };
 
 // 打たれた文章を AI に整えさせ、整えた文面だけをチャンネルに出す。原文は本人だけが読める表に残す。
-// 今は投稿のたびにその場で整形する。AI 同士の会話が入ったら、キューに積む形に移す
+// 今は投稿のたびにその場で整形し、返事は応答を返したあとに作る。量が増えたらキューに移す
 export async function postMessage(
   orgId: string,
   channelId: string,
@@ -61,6 +63,15 @@ export async function postMessage(
     await admin.from("messages").delete().eq("id", message.id);
     return { error: "投稿できませんでした。", raw };
   }
+
+  // 返事を求められた人の AI が、答えるか本人に聞く。投稿した人を待たせないよう後で動かす
+  after(async () => {
+    try {
+      await respondToMessage(message.id);
+    } catch (error) {
+      console.error("respondToMessage", error);
+    }
+  });
 
   revalidatePath(`/o/${orgId}/c/${channelId}`);
   return { sent: Date.now() };

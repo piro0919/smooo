@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Globe, Hash, UserPlus } from "lucide-react";
+import { Globe, Hash, MessageCircleQuestion, UserPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { BrowseChannelsDialog } from "@/components/BrowseChannelsDialog";
 import { CreateChannelDialog } from "@/components/CreateChannelDialog";
 import { CreateOrgDialog } from "@/components/CreateOrgDialog";
 import { InviteDialog } from "@/components/InviteDialog";
+import { LiveQuestions } from "@/components/LiveQuestions";
 import { cn } from "@/lib/utils";
 
 const itemClass = "flex items-center gap-2 rounded-md px-3 py-1 text-[15px] hover:bg-white/10";
@@ -19,7 +20,8 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
   } = await supabase.auth.getUser();
   const userId = user!.id;
 
-  const [{ data: memberships }, { data: channels }, { data: shared }] = await Promise.all([
+  const [{ data: memberships }, { data: channels }, { data: shared }, { count: openQuestions }] =
+    await Promise.all([
     supabase
       .from("memberships")
       .select("organization_id, organizations(id, name, personal)")
@@ -38,6 +40,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
       .eq("channel_members.user_id", userId)
       .neq("organization_id", orgId)
       .order("name"),
+    supabase.from("questions").select("id", { count: "exact", head: true }).eq("status", "open"),
   ]);
 
   const orgs = (memberships ?? []).flatMap((m) => (m.organizations ? [m.organizations] : []));
@@ -88,6 +91,18 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
           </InviteDialog>
         </header>
         <div className="flex-1 overflow-y-auto py-3">
+          <LiveQuestions userId={userId} />
+          <div className="px-2 pb-3">
+            <Link href={`/o/${orgId}/questions`} className={itemClass}>
+              <MessageCircleQuestion className="size-4 shrink-0" />
+              <span>あなたへの質問</span>
+              {!!openQuestions && (
+                <span className="ml-auto rounded-full bg-[#e01e5a] px-2 text-xs font-bold text-white">
+                  {openQuestions}
+                </span>
+              )}
+            </Link>
+          </div>
           <p className="px-4 pb-1 text-[15px]">チャンネル</p>
           <ul className="grid px-2">
             {joined.map((c) => (

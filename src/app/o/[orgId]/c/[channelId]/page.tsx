@@ -34,18 +34,20 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
     ? await Promise.all([
         supabase
           .from("messages")
-          .select("id, body, created_at, author_id, profiles(display_name, avatar_url)")
+          .select(
+            "id, body, created_at, author_id, profiles(display_name, avatar_url), parent:reply_to(body, profiles(display_name))",
+          )
           .eq("channel_id", channelId)
           .order("created_at", { ascending: false })
           .limit(100),
         supabase
           .from("message_sources")
-          .select("message_id, raw_text, messages!inner(channel_id)")
+          .select("message_id, raw_text, kind, messages!inner(channel_id)")
           .eq("messages.channel_id", channelId),
       ])
     : [{ data: [] }, { data: [] }];
   const messages = (latest ?? []).reverse();
-  const rawById = new Map((sources ?? []).map((s) => [s.message_id, s.raw_text]));
+  const rawById = new Map((sources ?? []).map((s) => [s.message_id, { text: s.raw_text, kind: s.kind }]));
 
   return (
     <>
