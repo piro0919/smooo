@@ -23,7 +23,7 @@ async function loadRecent(channelId: string, before: string): Promise<Line[]> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("messages")
-    .select("body, profiles(display_name)")
+    .select("body, profiles!messages_author_id_fkey(display_name)")
     .eq("channel_id", channelId)
     .lt("created_at", before)
     .order("created_at", { ascending: false })
@@ -80,21 +80,24 @@ async function postAs(userId: string, channel: Channel, draft: string, replyTo: 
     .select("id")
     .single();
   if (error) throw error;
-  await admin
+  const { error: sourceError } = await admin
     .from("message_sources")
     .insert({ message_id: message.id, author_id: userId, raw_text: draft, kind: "ai" });
+  if (sourceError) throw sourceError;
 }
 
 // 人間の投稿が入ったら、返事を求められた人ごとに、その人の AI が答えるか本人に聞く。
 // AI の投稿には反応しない。AI 同士の往復が止まらなくなるのを防ぐため
 export async function respondToMessage(messageId: string) {
   const admin = createAdminClient();
-  const { data: message } = await admin
+  const { data: message, error: messageError } = await admin
     .from("messages")
-    .select("id, channel_id, author_id, body, origin, created_at, profiles(display_name)")
+    .select("id, channel_id, author_id, body, origin, created_at, profiles!messages_author_id_fkey(display_name)")
     .eq("id", messageId)
     .single();
-  if (!message || message.origin !== "human") return;
+  // 問い合わせの失敗を「対象外」と取り違えない。あいまいな結合で黙って止まったことがある
+  if (messageError) throw messageError;
+  if (message.origin !== "human") return;
 
   const channel = await loadChannel(message.channel_id);
   const recent = await loadRecent(channel.id, message.created_at);
@@ -111,12 +114,24 @@ export async function respondToMessage(messageId: string) {
     autonomy: (m.profiles?.autonomy ?? "standard") as Autonomy,
   }));
 
-  const respondents = await whoMustRespond({
+  const { respondents, reactions } = await whoMustRespond({
     channel: channel.name,
     recent,
     message: trigger,
     members: people.map(({ user_id, name }) => ({ user_id, name })),
   });
+
+  console.info("respondToMessage", message.id, {
+    respondents: respondents.map((r) => r.user_id),
+    reactions: reactions.map((r) => r.emoji),
+  });
+
+  if (reactions.length) {
+    const { error } = await admin.from("reactions").insert(
+      reactions.map((r) => ({ message_id: message.id, channel_id: channel.id, user_id: r.user_id, emoji: r.emoji })),
+    );
+    if (error) throw error;
+  }
 
   await Promise.all(
     respondents.map(async ({ user_id }) => {
@@ -132,7 +147,7 @@ export async function respondToMessage(messageId: string) {
 
       if (decision.action === "ask") {
         const hours = Math.min(48, Math.max(1, decision.deadline_hours || 24));
-        await admin.from("questions").insert({
+        const { error } = await admin.from("questions").insert({
           user_id,
           message_id: message.id,
           channel_id: channel.id,
@@ -140,6 +155,7 @@ export async function respondToMessage(messageId: string) {
           options: decision.options.slice(0, 4),
           deadline: new Date(Date.now() + hours * 3600_000).toISOString(),
         });
+        if (error) throw error;
       }
       // 答えられるなら答えを、聞くなら「確認します」の一言を、本人の名前で返す
       if (decision.draft.trim()) await postAs(user_id, channel, decision.draft, message.id);
@@ -152,19 +168,20 @@ export async function respondWithAnswer(questionId: string) {
   const admin = createAdminClient();
   const { data: q } = await admin
     .from("questions")
-    .select("id, user_id, prompt, answer, channel_id, message_id, messages(body, profiles(display_name)), profiles(display_name)")
+    .select("id, user_id, prompt, answer, channel_id, message_id, messages(body, profiles!messages_author_id_fkey(display_name)), profiles(display_name)")
     .eq("id", questionId)
     .single();
   if (!q || !q.answer) return;
 
   const channel = await loadChannel(q.channel_id);
-  await admin.from("memories").insert({
+  const { error: memoryError } = await admin.from("memories").insert({
     user_id: q.user_id,
     organization_id: channel.organization_id,
     scope: channel.audience === "internal" ? "internal" : "channel",
     channel_id: channel.audience === "internal" ? null : channel.id,
     content: `「${q.prompt}」への答え: ${q.answer}`,
   });
+  if (memoryError) throw memoryError;
 
   const draft = await draftFromAnswer({
     person: q.profiles?.display_name ?? "?",
@@ -188,7 +205,7 @@ export async function answerOverdueQuestions() {
     .update({ status: "expired" })
     .eq("status", "open")
     .lt("deadline", new Date().toISOString())
-    .select("id, user_id, prompt, channel_id, message_id, profiles(display_name), messages(body, created_at, profiles(display_name))");
+    .select("id, user_id, prompt, channel_id, message_id, profiles(display_name), messages(body, created_at, profiles!messages_author_id_fkey(display_name))");
 
   const results = await Promise.allSettled(
     (due ?? []).map(async (q) => {

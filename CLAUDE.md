@@ -68,6 +68,14 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   call the API and post their own words.
 - **Posts are rewritten inline, inside the server action,** for now. It takes about two
   seconds. When AIs start talking to each other this moves to a queue.
+- **Reactions are chosen by the AI, in the same call that picks who has to answer.** One of
+  👍 🙏 🎉 👀 ✅ 😂, at most one per person, never from someone who is answering. People cannot
+  react themselves. Jev was meant for this; Sonnet 5 stands in while sign-ups are closed.
+- **Always name the foreign key when embedding the author of a message:**
+  `profiles!messages_author_id_fkey(...)`. `reactions` links `messages` and `profiles` through
+  its primary key, so PostgREST also sees a many-to-many path, and a bare `profiles(...)` fails
+  as ambiguous. It failed silently: the pipeline read "no message" and returned, and the channel
+  showed no posts. Query errors in the pipeline now throw.
 - **Realtime needs the access token before subscribing.** Without `realtime.setAuth`, the
   socket joins as anonymous, the subscription reports success, and row level security
   silently drops every event.

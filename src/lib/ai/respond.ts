@@ -13,31 +13,44 @@ function transcript(lines: Line[]) {
   return lines.map((l) => `${l.author}: ${l.body}`).join("\n");
 }
 
+export const EMOJI = ["👍", "🙏", "🎉", "👀", "✅", "😂"] as const;
+
 const Respondents = z.object({
   respondents: z.array(z.object({ user_id: z.string(), reason: z.string() })),
+  reactions: z.array(z.object({ user_id: z.string(), emoji: z.enum(EMOJI) })),
 });
 
-// 新しい投稿に、誰が返事をする必要があるか。質問や依頼を向けられた人だけを選ぶ。
-// 挨拶、報告、お礼のように返事が要らない投稿なら、誰も選ばない
+// 新しい投稿に、誰が返事をする必要があるか、誰がどのリアクションを付けるか。
+// 返事は質問や依頼を向けられた人だけ。リアクションは返事をしない人が、自然なときだけ付ける。
+// 同じ呼び出しで決めて、投稿1件あたりの呼び出しを増やさない
 export async function whoMustRespond(input: {
   channel: string;
   recent: Line[];
   message: Line;
   members: { user_id: string; name: string }[];
 }) {
-  if (input.members.length === 0) return [];
+  if (input.members.length === 0) return { respondents: [], reactions: [] };
 
   const response = await client.messages.parse({
     model: MODEL,
     max_tokens: 2048,
     output_config: { effort: "low", format: zodOutputFormat(Respondents) },
     system: `あなたはチャットツール Smooo の係です。チャンネルに新しい投稿が入りました。
-参加者のうち、この投稿に返事をする必要がある人を選びます。
+参加者のうち、この投稿に返事をする必要がある人と、リアクションを付ける人を選びます。
 
+返事（respondents）:
 - 質問、依頼、確認、日程の打診など、答えや対応を求められている人だけを選ぶ
 - 名前で呼ばれていれば、その人を選ぶ。「皆さん」のように全員に聞いていれば、全員を選ぶ
 - 報告、お礼、挨拶、相づちのように返事が要らない投稿なら、誰も選ばない
-- 投稿した本人は候補に入っていない`,
+
+リアクション（reactions）:
+- 返事をする人には付けない
+- 職場のチャットで人が自然に付ける場面でだけ付ける。報告や共有に 👀 や ✅、お礼に 🙏、
+  達成や良い知らせに 🎉、同意に 👍、冗談に 😂
+- 自分に関係のない投稿や、付けると不自然な投稿には付けない。付けない人がいてよい
+- 1人につき1つまで
+
+投稿した本人は候補に入っていない`,
     messages: [
       {
         role: "user",
@@ -55,7 +68,15 @@ ${input.message.author}: ${input.message.body}`,
   });
 
   const known = new Set(input.members.map((m) => m.user_id));
-  return (response.parsed_output?.respondents ?? []).filter((r) => known.has(r.user_id));
+  const respondents = (response.parsed_output?.respondents ?? []).filter((r) => known.has(r.user_id));
+  const answering = new Set(respondents.map((r) => r.user_id));
+  const seen = new Set<string>();
+  const reactions = (response.parsed_output?.reactions ?? []).filter((r) => {
+    if (!known.has(r.user_id) || answering.has(r.user_id) || seen.has(r.user_id)) return false;
+    seen.add(r.user_id);
+    return true;
+  });
+  return { respondents, reactions };
 }
 
 const Decision = z.object({

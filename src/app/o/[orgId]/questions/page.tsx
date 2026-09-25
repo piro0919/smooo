@@ -16,7 +16,7 @@ export default async function QuestionsPage({ params }: PageProps<"/o/[orgId]/qu
 
   const { data: questions } = await supabase
     .from("questions")
-    .select("id, prompt, options, deadline, channels(name), messages(body, profiles(display_name))")
+    .select("id, prompt, options, deadline, channels(name), messages(body, profiles!messages_author_id_fkey(display_name))")
     .eq("status", "open")
     .order("deadline");
 

@@ -2,7 +2,7 @@
 -- このツールの前提が崩れる。原文が本人以外に見えても同じく崩れる。
 begin;
 create extension if not exists pgtap;
-select plan(6);
+select plan(8);
 
 insert into auth.users (id, email) values
   ('aaaaaaaa-0000-0000-0000-00000000000a', 'msg-a@example.test'),
@@ -27,9 +27,19 @@ insert into messages (id, channel_id, author_id, body) values
 insert into message_sources (message_id, author_id, raw_text) values
   ('d0000000-0000-0000-0000-0000000000aa', 'aaaaaaaa-0000-0000-0000-00000000000a', '明日15時でいい？');
 
+insert into reactions (message_id, channel_id, user_id, emoji) values
+  ('d0000000-0000-0000-0000-0000000000aa', 'c0000000-0000-0000-0000-0000000000aa',
+   'bbbbbbbb-0000-0000-0000-00000000000b', '👍');
+
 set local role authenticated;
 
 set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-00000000000a"}';
+
+select throws_ok(
+  $$ insert into reactions (message_id, channel_id, user_id, emoji) values
+     ('d0000000-0000-0000-0000-0000000000aa', 'c0000000-0000-0000-0000-0000000000aa',
+      'aaaaaaaa-0000-0000-0000-00000000000a', '🎉') $$,
+  '42501', null, '人間はリアクションを付けられない');
 
 select is(
   (select raw_text from message_sources where message_id = 'd0000000-0000-0000-0000-0000000000aa'),
@@ -55,6 +65,10 @@ set local request.jwt.claims = '{"sub": "cccccccc-0000-0000-0000-00000000000c"}'
 select is(
   (select count(*)::int from messages where channel_id = 'c0000000-0000-0000-0000-0000000000aa'),
   0, 'チャンネルの外の人には投稿が見えない');
+
+select is(
+  (select count(*)::int from reactions where channel_id = 'c0000000-0000-0000-0000-0000000000aa'),
+  0, 'チャンネルの外の人にはリアクションも見えない');
 
 select throws_ok(
   $$ insert into message_sources (message_id, author_id, raw_text) values

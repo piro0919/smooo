@@ -19,9 +19,11 @@ const time = new Intl.DateTimeFormat("ja-JP", {
 export function MessageList({
   messages,
   sources,
+  reactions,
 }: {
   messages: Message[];
   sources: Map<string, { text: string; kind: string }>;
+  reactions: Map<string, Map<string, string[]>>;
 }) {
   if (messages.length === 0) {
     return (
@@ -56,6 +58,19 @@ export function MessageList({
                   </p>
                 )}
                 <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.body}</p>
+                {reactions.get(m.id) && (
+                  <ul className="mt-1 flex flex-wrap gap-1">
+                    {[...reactions.get(m.id)!].map(([emoji, names]) => (
+                      <li
+                        key={emoji}
+                        title={names.join("、")}
+                        className="rounded-full border border-zinc-200 bg-zinc-50 px-2 text-xs leading-6"
+                      >
+                        {emoji} {names.length}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {source && (
                   <details className="mt-1 text-xs text-muted-foreground">
                     <summary className="cursor-pointer select-none">

@@ -30,12 +30,12 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
   const Icon = channel.audience === "external" ? Globe : Hash;
 
   // 新しい順に100件取り、古い順に並べ直す
-  const [{ data: latest }, { data: sources }] = isMember
+  const [{ data: latest }, { data: sources }, { data: reactions }] = isMember
     ? await Promise.all([
         supabase
           .from("messages")
           .select(
-            "id, body, created_at, author_id, profiles(display_name, avatar_url), parent:reply_to(body, profiles(display_name))",
+            "id, body, created_at, author_id, profiles!messages_author_id_fkey(display_name, avatar_url), parent:reply_to(body, profiles!messages_author_id_fkey(display_name))",
           )
           .eq("channel_id", channelId)
           .order("created_at", { ascending: false })
@@ -44,9 +44,21 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
           .from("message_sources")
           .select("message_id, raw_text, kind, messages!inner(channel_id)")
           .eq("messages.channel_id", channelId),
+        supabase
+          .from("reactions")
+          .select("message_id, emoji, profiles(display_name)")
+          .eq("channel_id", channelId)
+          .order("created_at"),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }];
   const messages = (latest ?? []).reverse();
+  // 投稿ごとに、絵文字と付けた人の名前をまとめる
+  const reactionsById = new Map<string, Map<string, string[]>>();
+  for (const r of reactions ?? []) {
+    const byEmoji = reactionsById.get(r.message_id) ?? new Map<string, string[]>();
+    byEmoji.set(r.emoji, [...(byEmoji.get(r.emoji) ?? []), r.profiles?.display_name ?? "?"]);
+    reactionsById.set(r.message_id, byEmoji);
+  }
   const rawById = new Map((sources ?? []).map((s) => [s.message_id, { text: s.raw_text, kind: s.kind }]));
 
   return (
@@ -79,7 +91,7 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
       {isMember ? (
         <>
           <LiveRefresh channelId={channelId} />
-          <MessageList messages={messages} sources={rawById} />
+          <MessageList messages={messages} sources={rawById} reactions={reactionsById} />
           <Composer orgId={orgId} channelId={channelId} channelName={channel.name} />
         </>
       ) : (

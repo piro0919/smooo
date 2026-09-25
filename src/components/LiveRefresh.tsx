@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-// 新しい投稿が入ったら画面を取り直す。見えない投稿は RLS で届かない。
+// 新しい投稿やリアクションが入ったら画面を取り直す。見えない投稿は RLS で届かない。
 // Realtime はログインのトークンを渡してから購読しないと匿名扱いになり、何も届かない
 export function LiveRefresh({ channelId }: { channelId: string }) {
   const router = useRouter();
@@ -22,6 +22,11 @@ export function LiveRefresh({ channelId }: { channelId: string }) {
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "messages", filter: `channel_id=eq.${channelId}` },
+          () => router.refresh(),
+        )
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "reactions", filter: `channel_id=eq.${channelId}` },
           () => router.refresh(),
         )
         .subscribe();
