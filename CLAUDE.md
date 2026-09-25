@@ -112,6 +112,12 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   more than the post replied to for an AI post; nothing answers a post at depth 3. A holding
   line like "確認して返します" never sets anything off. Without a limit two AIs keep thanking
   each other.
+- **A plain answer gets a reaction, not a thank-you.** If a post only answers someone's
+  question and leaves them nothing to decide, the asker is not picked to reply; the reaction
+  covers it. Before this, "同行可能です" drew an AI "ありがとうございます" — noise the product
+  exists to remove. Six runs on three samples: five right, one needless reply.
+- **Questions from your AI show up under the post that caused them,** visible only to you, with
+  the same one-tap answers as "あなたへの質問".
 - **The deciding prompt says whose voice to use.** The first chained reply had 河村's AI repeat
   佐藤's answer word for word — it wrote as the sender, not the receiver. The prompt now says
   the post came from someone else and to move things forward from their answer, and a draft

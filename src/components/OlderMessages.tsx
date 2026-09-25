@@ -13,10 +13,12 @@ export function OlderMessages({
   channelId,
   oldest,
   userId,
+  orgId,
 }: {
   channelId: string;
   oldest: string;
   userId: string;
+  orgId: string;
 }) {
   const [older, setOlder] = useState<Item[]>([]);
   const [done, setDone] = useState(false);
@@ -45,7 +47,7 @@ export function OlderMessages({
         </li>
       )}
       {older.map((m) => (
-        <MessageItem key={m.id} m={m} userId={userId} />
+        <MessageItem key={m.id} m={m} userId={userId} orgId={orgId} />
       ))}
     </>
   );

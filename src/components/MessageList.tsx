@@ -7,11 +7,13 @@ export function MessageList({
   messages,
   hasOlder,
   userId,
+  orgId,
 }: {
   channelId: string;
   messages: Item[];
   hasOlder: boolean;
   userId: string;
+  orgId: string;
 }) {
   if (messages.length === 0) {
     return (
@@ -25,9 +27,9 @@ export function MessageList({
     // 下から積む。新しい投稿が来ても、いちばん下が見えたままになる
     <div className="flex flex-1 flex-col-reverse overflow-y-auto py-4">
       <ol>
-        {hasOlder && <OlderMessages channelId={channelId} oldest={messages[0].created_at} userId={userId} />}
+        {hasOlder && <OlderMessages channelId={channelId} oldest={messages[0].created_at} userId={userId} orgId={orgId} />}
         {messages.map((m) => (
-          <MessageItem key={m.id} m={m} userId={userId} />
+          <MessageItem key={m.id} m={m} userId={userId} orgId={orgId} />
         ))}
       </ol>
     </div>

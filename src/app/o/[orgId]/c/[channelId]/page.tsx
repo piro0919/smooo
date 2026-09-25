@@ -88,7 +88,7 @@ export default async function ChannelPage({
           <LiveRefresh channelId={channelId} />
           <MarkRead orgId={orgId} channelId={channelId} latest={messages.at(-1)?.id} />
           <ComposerTargetProvider>
-            <MessageList channelId={channelId} messages={messages} hasOlder={messages.length === LATEST} userId={auth.user!.id} />
+            <MessageList channelId={channelId} messages={messages} hasOlder={messages.length === LATEST} userId={auth.user!.id} orgId={orgId} />
             <Composer
               orgId={orgId}
               channelId={channelId}

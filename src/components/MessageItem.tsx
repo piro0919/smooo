@@ -1,5 +1,6 @@
 import type { MessageItem as Item } from "@/lib/messages";
 import { MessageActions } from "./MessageActions";
+import { QuestionCard } from "./QuestionCard";
 
 const time = new Intl.DateTimeFormat("ja-JP", {
   hour: "2-digit",
@@ -10,7 +11,15 @@ const time = new Intl.DateTimeFormat("ja-JP", {
 // Slack と同じく、四角いアイコン、太字の名前、薄い時刻、本文の順。
 // 自分の投稿にだけ、打った原文を開ける「原文」を付ける。AI が代わりに書いた投稿なら、その下書き。
 // ほかの人には、AI が書いたかどうかは見せない
-export function MessageItem({ m, userId }: { m: Item; userId: string }) {
+const deadline = new Intl.DateTimeFormat("ja-JP", {
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Asia/Tokyo",
+});
+
+export function MessageItem({ m, userId, orgId }: { m: Item; userId: string; orgId: string }) {
   return (
     <li
       tabIndex={0}
@@ -46,6 +55,17 @@ export function MessageItem({ m, userId }: { m: Item; userId: string }) {
               </li>
             ))}
           </ul>
+        )}
+        {m.question && (
+          // AI が本人に聞いていること。聞かれた本人にしか届かないので、ほかの人には出ない
+          <div className="mt-2 grid gap-2 rounded-lg border border-[#1164a3]/30 bg-[#1164a3]/5 p-3">
+            <p className="text-xs text-muted-foreground">
+              あなたの AI からの質問 ・ {deadline.format(new Date(m.question.deadline))} までに答えないと、AI
+              が代わりに返します
+            </p>
+            <p className="text-sm font-bold">{m.question.prompt}</p>
+            <QuestionCard orgId={orgId} questionId={m.question.id} options={m.question.options} />
+          </div>
         )}
         {m.source && (
           <details className="mt-1 text-xs text-muted-foreground">
