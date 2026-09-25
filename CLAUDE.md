@@ -3,8 +3,9 @@
 # Smooo
 
 Looks like an ordinary chat app, except that people cannot post their own words. The spec was
-settled in one long discussion on 2026-09-26. So far there is sign-in, organisations, and
-channels; nothing can be posted yet.
+settled in one long discussion on 2026-09-26. So far there is sign-in, organisations, channels, and
+posting: what someone types is rewritten by Sonnet 5 and only the rewrite reaches the channel.
+AIs do not talk to each other yet.
 
 ## The core
 
@@ -25,7 +26,10 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 | `supabase/migrations/` | Organisations, profiles, memberships, channels, channel members, and who can see what |
 | `supabase/tests/rls_test.sql` | pgTAP tests for the above. Outsiders must never reach an internal channel |
 | `src/proxy.ts` | Refreshes the Supabase session on every request and sends signed-out people to `/login` |
+| `supabase/tests/messages_test.sql` | Nobody can write a post directly, and only the author reads what they typed |
 | `src/app/o/[orgId]/` | The Slack-shaped screen: organisation rail, channel list, channel |
+| `src/app/o/[orgId]/c/[channelId]/actions.ts` | Posting: check membership, rewrite, then write with the secret key |
+| `src/lib/ai/format-system.md` | The rewriting prompt. `evals/format/run.py` reads the same file |
 | `evals/format/` | The prompt that rewrites what people type, and how it was chosen |
 | `scripts/dev-session.mjs`, `src/app/auth/dev/` | A local test user and a dev-only way in, to check screens without Google |
 
@@ -50,6 +54,15 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 - **Who sees what is decided in Postgres, not in pages.** Membership checks live in
   `private.*` functions so policies do not recurse, and a trigger — not a policy — keeps
   outsiders out of internal channels, so an invite path added later cannot open a hole.
+- **What people type and what gets posted live in separate tables.** `message_sources` holds the
+  raw text and only its author can read it. Neither table accepts writes from a signed-in
+  user; the server writes both with the secret key after the rewrite. Otherwise anyone could
+  call the API and post their own words.
+- **Posts are rewritten inline, inside the server action,** for now. It takes about two
+  seconds. When AIs start talking to each other this moves to a queue.
+- **Realtime needs the access token before subscribing.** Without `realtime.setAuth`, the
+  socket joins as anonymous, the subscription reports success, and row level security
+  silently drops every event.
 - **Everyone gets a personal organisation at sign-up.** A company organisation is joined later
   by invitation, which does not exist yet.
 
@@ -138,7 +151,8 @@ Haiku kept failing even after the prompt forbade it: it answered "？" with a no
 nothing to rewrite, swapped a manager and their report, and greeted a client with
 「お疲れ様です」. The note would have been posted as the person's own message.
 
-The prompt is `SYSTEM` in `evals/format/run.py`. After changing it, run `cases2.json` as well —
+The prompt is `src/lib/ai/format-system.md`, shared by the app and `evals/format/run.py`. After
+changing it, run `cases2.json` as well —
 `cases.json` was in view while the prompt was written, so scores on it read high.
 
 ## Open questions

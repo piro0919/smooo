@@ -1,0 +1,65 @@
+type Message = {
+  id: string;
+  body: string;
+  created_at: string;
+  author_id: string;
+  profiles: { display_name: string; avatar_url: string | null } | null;
+};
+
+const time = new Intl.DateTimeFormat("ja-JP", {
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Asia/Tokyo",
+});
+
+// Slack と同じく、四角いアイコン、太字の名前、薄い時刻、本文の順。
+// 自分の投稿にだけ、打った原文を開ける「原文」を付ける
+export function MessageList({
+  messages,
+  sources,
+}: {
+  messages: Message[];
+  sources: Map<string, string>;
+}) {
+  if (messages.length === 0) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8 text-center text-muted-foreground">
+        まだ投稿はありません。
+      </div>
+    );
+  }
+
+  return (
+    // 下から積む。新しい投稿が来ても、いちばん下が見えたままになる
+    <div className="flex flex-1 flex-col-reverse overflow-y-auto py-4">
+      <ol>
+        {messages.map((m) => {
+          const name = m.profiles?.display_name ?? "（不明）";
+          const raw = sources.get(m.id);
+          return (
+            <li key={m.id} className="flex gap-2 px-5 py-2 hover:bg-zinc-50">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-[#4a154b] text-sm font-bold text-white">
+                {name.slice(0, 1)}
+              </div>
+              <div className="min-w-0">
+                <p className="flex items-baseline gap-2">
+                  <span className="font-bold">{name}</span>
+                  <time dateTime={m.created_at} className="text-xs text-muted-foreground">
+                    {time.format(new Date(m.created_at))}
+                  </time>
+                </p>
+                <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.body}</p>
+                {raw && (
+                  <details className="mt-1 text-xs text-muted-foreground">
+                    <summary className="cursor-pointer select-none">原文</summary>
+                    <p className="mt-1 whitespace-pre-wrap rounded bg-zinc-100 px-2 py-1">{raw}</p>
+                  </details>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
