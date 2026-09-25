@@ -79,6 +79,9 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   its primary key, so PostgREST also sees a many-to-many path, and a bare `profiles(...)` fails
   as ambiguous. It failed silently: the pipeline read "no message" and returned, and the channel
   showed no posts. Query errors in the pipeline now throw.
+- **A channel shows a skeleton while it loads.** Because of that `loading.tsx`, the page streams,
+  and a channel that does not exist or is not yours answers 200 with the "見つかりません" page,
+  not 404. Nothing of the channel is sent either way; don't use the status code to test access.
 - **A channel opens on its latest 100 posts.** "これより前の投稿を読み込む" at the top adds 50
   older ones at a time. The list is stacked from the bottom (`flex-col-reverse`), so adding
   above does not move what is on screen.
