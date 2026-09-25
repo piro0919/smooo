@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { originOf } from "@/lib/origin";
 import { createClient } from "@/lib/supabase/server";
 
 // Google から一度きりのコードを持って戻ってくる。セッションに引き換えて、トップへ送る
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = request.nextUrl;
+  const origin = originOf(request);
   const code = searchParams.get("code");
 
   if (!code) {

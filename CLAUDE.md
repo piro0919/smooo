@@ -27,7 +27,7 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 | `src/proxy.ts` | Refreshes the Supabase session on every request and sends signed-out people to `/login` |
 | `src/app/o/[orgId]/` | The Slack-shaped screen: organisation rail, channel list, channel |
 | `evals/format/` | The prompt that rewrites what people type, and how it was chosen |
-| `scripts/dev-session.mjs` | Makes a local test user and prints its session cookie, to check screens without Google |
+| `scripts/dev-session.mjs`, `src/app/auth/dev/` | A local test user and a dev-only way in, to check screens without Google |
 
 ## Local development
 
@@ -39,9 +39,14 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   127.0.0.1, and a session cookie set on one host is invisible on the other. `next.config.ts`
   allows 127.0.0.1 as a dev origin; without it Next blocks its own hot reload socket and the
   page never hydrates, so buttons silently do nothing.
-- **Checking a screen without Google:** run `scripts/dev-session.mjs` with `SUPABASE_SECRET_KEY`
-  from `supabase status -o env`, and hand the printed cookie to the browser. It refuses to talk
-  to anything but 127.0.0.1.
+- **Checking a screen without Google:** run `scripts/dev-session.mjs <email>` with
+  `SUPABASE_SECRET_KEY` from `supabase status -o env` to create a test user, then open
+  `http://127.0.0.1:3000/auth/dev?email=<email>`. The route is a 404 outside `next dev` and
+  against anything but a local Supabase. The script also prints the session cookie, for
+  headless browsers.
+- **Redirect to the host the request came in on, never `request.url`.** In dev, `request.url`
+  says `localhost` even when the page was opened on 127.0.0.1, and the session cookie stays
+  behind. `src/lib/origin.ts` builds it from the Host header.
 - **Who sees what is decided in Postgres, not in pages.** Membership checks live in
   `private.*` functions so policies do not recurse, and a trigger — not a policy — keeps
   outsiders out of internal channels, so an invite path added later cannot open a hole.
