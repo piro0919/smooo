@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Globe, Hash, UserPlus } from "lucide-react";
+import { BackToList } from "@/components/BackToList";
 import { Composer } from "@/components/Composer";
 import { ComposerTargetProvider } from "@/components/ComposerTarget";
 import { LiveRefresh } from "@/components/LiveRefresh";
@@ -86,17 +87,18 @@ export default async function ChannelPage({
 
   return (
     <>
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-5">
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4 md:px-5">
+        <BackToList orgId={orgId} />
         {!isDm && <Icon className="size-4" />}
         <h2 className="truncate text-lg font-bold">{title}</h2>
         {isDm ? null : isGuest ? (
-          <span className="text-sm text-muted-foreground">
+          <span className="hidden truncate text-sm text-muted-foreground md:inline">
             {channel.organizations?.name} とのチャンネル
           </span>
         ) : (
           channel.audience === "external" && (
             <>
-              <span className="text-sm text-muted-foreground">
+              <span className="hidden text-sm text-muted-foreground md:inline">
                 社外の人も参加できます
               </span>
               <InviteDialog
@@ -105,11 +107,14 @@ export default async function ChannelPage({
                 title="社外の人を招待する"
                 description={`このリンクから入った人は、#${channel.name} にだけ参加します。ほかのチャンネルや社内の人の一覧は見えません。`}
                 trigger={
-                  <button className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-sm hover:bg-zinc-100" />
+                  <button
+                    aria-label="社外の人を招待"
+                    className="ml-auto flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm hover:bg-zinc-100"
+                  />
                 }
               >
                 <UserPlus className="size-4" />
-                社外の人を招待
+                <span className="hidden md:inline">社外の人を招待</span>
               </InviteDialog>
             </>
           )

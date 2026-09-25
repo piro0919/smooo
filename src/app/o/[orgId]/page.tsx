@@ -1,7 +1,9 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-// Organization を開いたら、参加しているチャンネルの最初の一つを開く
+// Organization を開いたら、参加しているチャンネルの最初の一つを開く。
+// スマホではこの画面が一覧なので、飛ばさずに一覧を見せる
 export default async function OrgHome({ params }: PageProps<"/o/[orgId]">) {
   const { orgId } = await params;
   const supabase = await createClient();
@@ -17,8 +19,9 @@ export default async function OrgHome({ params }: PageProps<"/o/[orgId]">) {
     .order("name", { referencedTable: "channels" })
     .limit(1);
 
+  const mobile = /Mobile|Android/i.test((await headers()).get("user-agent") ?? "");
   const first = data?.[0];
-  if (first) redirect(`/o/${orgId}/c/${first.channel_id}`);
+  if (first && !mobile) redirect(`/o/${orgId}/c/${first.channel_id}`);
 
   return (
     <div className="flex flex-1 items-center justify-center p-8 text-center text-muted-foreground">

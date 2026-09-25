@@ -8,6 +8,7 @@ import { CreateOrgDialog } from "@/components/CreateOrgDialog";
 import { InviteDialog } from "@/components/InviteDialog";
 import { LiveSidebar } from "@/components/LiveSidebar";
 import { MembersDialog } from "@/components/MembersDialog";
+import { OrgShell } from "@/components/OrgShell";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { StartDmDialog } from "@/components/StartDmDialog";
 import { cn } from "@/lib/utils";
@@ -102,7 +103,10 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
   const guestChannels = (shared ?? []).filter((c) => !mine.has(c.organization_id));
 
   return (
-    <div className="flex h-dvh overflow-hidden">
+    <OrgShell
+      orgId={orgId}
+      side={
+    <>
       <nav className="flex w-[70px] shrink-0 flex-col items-center gap-3 bg-[#350d36] py-3">
         {orgs.map((o) => (
           <Link
@@ -119,7 +123,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
         ))}
         <CreateOrgDialog />
       </nav>
-      <aside className="flex w-[260px] shrink-0 flex-col bg-[#3f0e40] text-[#cfc3cf]">
+      <aside className="flex min-w-0 flex-1 flex-col bg-[#3f0e40] text-[#cfc3cf] md:w-[260px] md:flex-none">
         <header className="flex h-12 items-center justify-between gap-2 border-b border-white/10 pl-4 pr-2">
           <h1 className="truncate text-lg font-bold text-white">{org.name}</h1>
           <div className="flex items-center">
@@ -215,7 +219,10 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
           </form>
         </div>
       </aside>
-      <main className="flex min-w-0 flex-1 flex-col bg-white">{children}</main>
-    </div>
+    </>
+      }
+    >
+      {children}
+    </OrgShell>
   );
 }

@@ -1,3 +1,4 @@
+import { BackToList } from "@/components/BackToList";
 import { QuestionCard } from "@/components/QuestionCard";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,7 +23,8 @@ export default async function QuestionsPage({ params }: PageProps<"/o/[orgId]/qu
 
   return (
     <>
-      <header className="flex h-12 shrink-0 items-center border-b px-5">
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-5">
+        <BackToList orgId={orgId} />
         <h2 className="text-lg font-bold">あなたへの質問</h2>
       </header>
       <div className="flex-1 overflow-y-auto p-5">

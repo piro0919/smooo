@@ -46,7 +46,7 @@ export function MessageList({
           const name = m.profiles?.display_name ?? "（不明）";
           const source = sources.get(m.id);
           return (
-            <li key={m.id} className="group relative flex gap-2 px-5 py-2 hover:bg-zinc-50">
+            <li key={m.id} tabIndex={0} className="group relative flex gap-2 px-4 py-2 outline-none hover:bg-zinc-50 focus:bg-zinc-50 md:px-5">
               <MessageActions id={m.id} author={name} body={m.body} mine={m.author_id === userId} />
               <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-[#4a154b] text-sm font-bold text-white">
                 {name.slice(0, 1)}
