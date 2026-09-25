@@ -75,6 +75,11 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   picks who has to answer; then, per person, one call decides "answer from memory" or "ask".
   Either way something is posted in their name: the answer, or "確認して返します". Answering a
   question saves it to memory and posts the reply. Roughly 5 seconds end to end.
+- **How far the AI may answer is each person's setting,** `profiles.autonomy`: 慎重 answers only
+  when memory holds this exact answer, 標準 only what memory and the conversation make certain,
+  任せる whatever follows reasonably, asking only about money, contracts, people decisions, big
+  commitments, or when there is nothing to go on. Checked on 2026-09-26: the same light request
+  ("議事録お願いできる？") was accepted under 任せる and turned into a question under 標準.
 - **Past the deadline, `answerOverdueQuestions` flips `open` to `expired` and answers only the
   rows it flipped,** so overlapping cron runs cannot answer twice. The reply is yes-and, may
   commit, and is not saved to memory: nobody said it. Every-5-minutes cron needs Vercel's paid

@@ -69,8 +69,23 @@ const Decision = z.object({
   deadline_hours: z.number(),
 });
 
-// 本人に代わって答えるか、本人に聞くか。覚えていることと会話から確実に言えることだけで答える
+export type Autonomy = "careful" | "standard" | "trusting";
+
+// 本人が選んだ、聞かずに答えてよい範囲
+const LIMITS: Record<Autonomy, string> = {
+  careful: `答えてよいのは、「覚えていること」にこの問いへの答えがそのまま書いてあるときだけです。
+少しでも解釈や推測が要るなら、本人に聞きます。`,
+  standard: `答えてよいのは、「覚えていること」と会話から確実に言えることだけです。
+本人の予定、意向、判断、新しい約束が要るのに、覚えていることから言えなければ、本人に聞きます。
+推測で答えてはいけません。`,
+  trusting: `「覚えていること」と会話から無理なく判断できるなら、本人に聞かずに答えます。
+日程の調整や軽い依頼の引き受けのように、本人がふだん断らない種類のことは受けてかまいません。
+お金、契約、人事、大きな約束のように重い判断が要るときと、手がかりが何もないときだけ本人に聞きます。`,
+};
+
+// 本人に代わって答えるか、本人に聞くか。どこまで答えるかは本人の設定に従う
 export async function decide(input: {
+  autonomy: Autonomy;
   person: string;
   channel: string;
   recent: Line[];
@@ -84,9 +99,7 @@ export async function decide(input: {
     system: `あなたはチャットツール Smooo で、${input.person}さんの代わりに返事をする係です。
 ${input.person}さんに向けられた投稿に、本人に聞かずに答えられるかを決めます。
 
-答えてよいのは、「${input.person}さんについて覚えていること」と会話から確実に言えることだけです。
-本人の予定、意向、判断、新しい約束が要るのに、覚えていることから言えなければ、本人に聞きます。
-推測で答えてはいけません。
+${LIMITS[input.autonomy]}
 
 - 答えるなら action を answer にし、draft に${input.person}さんが雑に打つような短い返事を書く。
   丁寧に整えるのは別の係なので、ここでは整えない。question は空、options は空の配列、deadline_hours は 0

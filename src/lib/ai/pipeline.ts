@@ -1,6 +1,6 @@
 import "server-only";
 import { formatMessage, type Audience } from "./format";
-import { decide, draftFromAnswer, draftWithoutAnswer, whoMustRespond, type Line } from "./respond";
+import { decide, draftFromAnswer, draftWithoutAnswer, whoMustRespond, type Autonomy, type Line } from "./respond";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const RECENT = 20;
@@ -76,25 +76,27 @@ export async function respondToMessage(messageId: string) {
 
   const { data: members } = await admin
     .from("channel_members")
-    .select("user_id, profiles(display_name)")
+    .select("user_id, profiles(display_name, autonomy)")
     .eq("channel_id", channel.id)
     .neq("user_id", message.author_id);
   const people = (members ?? []).map((m) => ({
     user_id: m.user_id,
     name: m.profiles?.display_name ?? "?",
+    autonomy: (m.profiles?.autonomy ?? "standard") as Autonomy,
   }));
 
   const respondents = await whoMustRespond({
     channel: channel.name,
     recent,
     message: trigger,
-    members: people,
+    members: people.map(({ user_id, name }) => ({ user_id, name })),
   });
 
   await Promise.all(
     respondents.map(async ({ user_id }) => {
-      const person = people.find((p) => p.user_id === user_id)!.name;
+      const { name: person, autonomy } = people.find((p) => p.user_id === user_id)!;
       const decision = await decide({
+        autonomy,
         person,
         channel: channel.name,
         recent,

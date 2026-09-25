@@ -7,6 +7,7 @@ import { CreateChannelDialog } from "@/components/CreateChannelDialog";
 import { CreateOrgDialog } from "@/components/CreateOrgDialog";
 import { InviteDialog } from "@/components/InviteDialog";
 import { LiveQuestions } from "@/components/LiveQuestions";
+import { SettingsDialog } from "@/components/SettingsDialog";
 import { cn } from "@/lib/utils";
 
 const itemClass = "flex items-center gap-2 rounded-md px-3 py-1 text-[15px] hover:bg-white/10";
@@ -20,8 +21,13 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
   } = await supabase.auth.getUser();
   const userId = user!.id;
 
-  const [{ data: memberships }, { data: channels }, { data: shared }, { count: openQuestions }] =
-    await Promise.all([
+  const [
+    { data: memberships },
+    { data: channels },
+    { data: shared },
+    { count: openQuestions },
+    { data: me },
+  ] = await Promise.all([
     supabase
       .from("memberships")
       .select("organization_id, organizations(id, name, personal)")
@@ -41,6 +47,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
       .neq("organization_id", orgId)
       .order("name"),
     supabase.from("questions").select("id", { count: "exact", head: true }).eq("status", "open"),
+    supabase.from("profiles").select("autonomy").eq("id", userId).single(),
   ]);
 
   const orgs = (memberships ?? []).flatMap((m) => (m.organizations ? [m.organizations] : []));
@@ -141,11 +148,14 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
             </>
           )}
         </div>
-        <form action="/auth/signout" method="post" className="border-t border-white/10 p-2">
-          <button className="w-full rounded-md px-3 py-1 text-left text-sm hover:bg-white/10">
-            ログアウト
-          </button>
-        </form>
+        <div className="grid border-t border-white/10 p-2">
+          <SettingsDialog autonomy={me?.autonomy ?? "standard"} />
+          <form action="/auth/signout" method="post">
+            <button className="w-full rounded-md px-3 py-1 text-left text-sm hover:bg-white/10">
+              ログアウト
+            </button>
+          </form>
+        </div>
       </aside>
       <main className="flex min-w-0 flex-1 flex-col bg-white">{children}</main>
     </div>
