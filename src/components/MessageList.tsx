@@ -1,8 +1,11 @@
+import { MessageActions } from "./MessageActions";
+
 type Message = {
   id: string;
   body: string;
   created_at: string;
   author_id: string;
+  corrects: string | null;
   profiles: { display_name: string; avatar_url: string | null } | null;
   parent: { body: string; profiles: { display_name: string } | null } | null;
 };
@@ -20,10 +23,12 @@ export function MessageList({
   messages,
   sources,
   reactions,
+  userId,
 }: {
   messages: Message[];
   sources: Map<string, { text: string; kind: string }>;
   reactions: Map<string, Map<string, string[]>>;
+  userId: string;
 }) {
   if (messages.length === 0) {
     return (
@@ -41,7 +46,8 @@ export function MessageList({
           const name = m.profiles?.display_name ?? "（不明）";
           const source = sources.get(m.id);
           return (
-            <li key={m.id} className="flex gap-2 px-5 py-2 hover:bg-zinc-50">
+            <li key={m.id} className="group relative flex gap-2 px-5 py-2 hover:bg-zinc-50">
+              <MessageActions id={m.id} author={name} body={m.body} mine={m.author_id === userId} />
               <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-[#4a154b] text-sm font-bold text-white">
                 {name.slice(0, 1)}
               </div>
@@ -54,6 +60,9 @@ export function MessageList({
                 </p>
                 {m.parent && (
                   <p className="mb-1 truncate border-l-2 border-zinc-300 pl-2 text-xs text-muted-foreground">
+                    {m.corrects && (
+                      <span className="mr-1 rounded bg-amber-100 px-1 font-bold text-amber-800">訂正</span>
+                    )}
                     {m.parent.profiles?.display_name}: {m.parent.body}
                   </p>
                 )}

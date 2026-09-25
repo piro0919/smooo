@@ -142,7 +142,15 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 - **Only the author can see what they originally typed.** Whether admins can too is decided
   when it turns B2B, and if they can, users are told.
 - **Messages are polite Japanese (丁寧語) throughout.**
-- **Posts are never edited.** A correction is a new post.
+- **Posts are never edited.** A correction is a new post with `corrects` pointing at the
+  original, shown with a 訂正 label and a quote. Only the person answerable for a post can
+  correct it, including posts their AI wrote. A correction rewrites that person's memory:
+  `reviseMemories` drops what contradicts it and stores the corrected fact. Checked on
+  2026-09-26: after 佐藤 corrected "出席いたします" to "出られなくなった", the old memory was
+  gone and the next "水曜来れる？" got "出席できません" without asking him.
+- **People can reply to a specific post.** Hover a post for 返信 (and 訂正 on your own). The AI
+  that picks who has to answer is told which post a reply points at; without that it picked
+  whoever was named in the text, and 佐藤's AI answered a reply meant for 鈴木.
 - **Reactions are the AI's job too.**
 - **Channels and DMs, like Slack.** The AI keeps track of which topic each post belongs to;
   the screen only shows a quote of the post being replied to. This is provisional.

@@ -290,6 +290,7 @@ export type Database = {
           author_id: string
           body: string
           channel_id: string
+          corrects: string | null
           created_at: string
           id: string
           origin: string
@@ -299,6 +300,7 @@ export type Database = {
           author_id: string
           body: string
           channel_id: string
+          corrects?: string | null
           created_at?: string
           id?: string
           origin?: string
@@ -308,6 +310,7 @@ export type Database = {
           author_id?: string
           body?: string
           channel_id?: string
+          corrects?: string | null
           created_at?: string
           id?: string
           origin?: string
@@ -326,6 +329,13 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_corrects_fkey"
+            columns: ["corrects"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
           {

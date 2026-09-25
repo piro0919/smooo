@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Globe, Hash, UserPlus } from "lucide-react";
 import { Composer } from "@/components/Composer";
+import { ComposerTargetProvider } from "@/components/ComposerTarget";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { InviteDialog } from "@/components/InviteDialog";
 import { MessageList } from "@/components/MessageList";
@@ -8,14 +9,18 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { joinChannel } from "../../actions";
 
-export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[channelId]">) {
+export default async function ChannelPage({
+  params,
+}: PageProps<"/o/[orgId]/c/[channelId]">) {
   const { orgId, channelId } = await params;
   const supabase = await createClient();
 
   const [{ data: channel }, { data: auth }] = await Promise.all([
     supabase
       .from("channels")
-      .select("id, name, kind, audience, organization_id, organizations(name), channel_members(user_id, profiles(display_name))")
+      .select(
+        "id, name, kind, audience, organization_id, organizations(name), channel_members(user_id, profiles(display_name))",
+      )
       .eq("id", channelId)
       .maybeSingle(),
     supabase.auth.getUser(),
@@ -23,7 +28,9 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
 
   if (!channel) notFound();
 
-  const isMember = channel.channel_members.some((m) => m.user_id === auth.user?.id);
+  const isMember = channel.channel_members.some(
+    (m) => m.user_id === auth.user?.id,
+  );
   // よその会社のチャンネルは、招かれて参加している社外とのチャンネルだけ開ける
   const isGuest = channel.organization_id !== orgId;
   if (isGuest && !(channel.audience === "external" && isMember)) notFound();
@@ -31,7 +38,8 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
   const isDm = channel.kind === "dm";
   // DM は相手の名前で呼ぶ
   const title = isDm
-    ? (channel.channel_members.find((m) => m.user_id !== auth.user?.id)?.profiles?.display_name ?? "?")
+    ? (channel.channel_members.find((m) => m.user_id !== auth.user?.id)
+        ?.profiles?.display_name ?? "?")
     : channel.name!;
 
   // 新しい順に100件取り、古い順に並べ直す
@@ -40,7 +48,7 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
         supabase
           .from("messages")
           .select(
-            "id, body, created_at, author_id, profiles!messages_author_id_fkey(display_name, avatar_url), parent:reply_to(body, profiles!messages_author_id_fkey(display_name))",
+            "id, body, created_at, author_id, corrects, profiles!messages_author_id_fkey(display_name, avatar_url), parent:reply_to(body, profiles!messages_author_id_fkey(display_name))",
           )
           .eq("channel_id", channelId)
           .order("created_at", { ascending: false })
@@ -60,11 +68,20 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
   // 投稿ごとに、絵文字と付けた人の名前をまとめる
   const reactionsById = new Map<string, Map<string, string[]>>();
   for (const r of reactions ?? []) {
-    const byEmoji = reactionsById.get(r.message_id) ?? new Map<string, string[]>();
-    byEmoji.set(r.emoji, [...(byEmoji.get(r.emoji) ?? []), r.profiles?.display_name ?? "?"]);
+    const byEmoji =
+      reactionsById.get(r.message_id) ?? new Map<string, string[]>();
+    byEmoji.set(r.emoji, [
+      ...(byEmoji.get(r.emoji) ?? []),
+      r.profiles?.display_name ?? "?",
+    ]);
     reactionsById.set(r.message_id, byEmoji);
   }
-  const rawById = new Map((sources ?? []).map((s) => [s.message_id, { text: s.raw_text, kind: s.kind }]));
+  const rawById = new Map(
+    (sources ?? []).map((s) => [
+      s.message_id,
+      { text: s.raw_text, kind: s.kind },
+    ]),
+  );
 
   return (
     <>
@@ -72,11 +89,15 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
         {!isDm && <Icon className="size-4" />}
         <h2 className="truncate text-lg font-bold">{title}</h2>
         {isDm ? null : isGuest ? (
-          <span className="text-sm text-muted-foreground">{channel.organizations?.name} とのチャンネル</span>
+          <span className="text-sm text-muted-foreground">
+            {channel.organizations?.name} とのチャンネル
+          </span>
         ) : (
           channel.audience === "external" && (
             <>
-              <span className="text-sm text-muted-foreground">社外の人も参加できます</span>
+              <span className="text-sm text-muted-foreground">
+                社外の人も参加できます
+              </span>
               <InviteDialog
                 orgId={orgId}
                 channelId={channelId}
@@ -96,12 +117,26 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
       {isMember ? (
         <>
           <LiveRefresh channelId={channelId} />
-          <MessageList messages={messages} sources={rawById} reactions={reactionsById} />
-          <Composer orgId={orgId} channelId={channelId} placeholder={isDm ? `${title}さんへ` : `#${title} へ`} />
+          <ComposerTargetProvider>
+            <MessageList
+              messages={messages}
+              sources={rawById}
+              reactions={reactionsById}
+              userId={auth.user!.id}
+            />
+            <Composer
+              orgId={orgId}
+              channelId={channelId}
+              placeholder={isDm ? `${title}さんへ` : `#${title} へ`}
+            />
+          </ComposerTargetProvider>
         </>
       ) : (
         <div className="flex flex-1 items-center justify-center p-8 text-center text-muted-foreground">
-          <form action={joinChannel.bind(null, orgId, channelId)} className="grid gap-3">
+          <form
+            action={joinChannel.bind(null, orgId, channelId)}
+            className="grid gap-3"
+          >
             <p>このチャンネルにはまだ参加していません。</p>
             <Button type="submit">参加する</Button>
           </form>

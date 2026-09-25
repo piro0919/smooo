@@ -41,6 +41,8 @@ export async function whoMustRespond(input: {
 返事（respondents）:
 - 質問、依頼、確認、日程の打診など、答えや対応を求められている人だけを選ぶ
 - 名前で呼ばれていれば、その人を選ぶ。「皆さん」のように全員に聞いていれば、全員を選ぶ
+- ほかの人の投稿への返信なら、返信先の投稿を書いた人が相手。本文にほかの人の名前が出ていても、
+  その人に向けた問いでなければ選ばない
 - 報告、お礼、挨拶、相づちのように返事が要らない投稿なら、誰も選ばない
 
 リアクション（reactions）:
@@ -251,4 +253,46 @@ export async function classifyMemory(input: { question: string; answer: string }
     messages: [{ role: "user", content: `質問: ${input.question}\n答え: ${input.answer}` }],
   });
   return response.parsed_output?.scope ?? "internal";
+}
+
+const Revision = z.object({
+  remove_ids: z.array(z.string()),
+  // 訂正で分かった、覚え直すこと。覚えることがなければ空
+  add: z.string(),
+});
+
+// 本人が自分の投稿を訂正したら、覚えている内容のうち食い違うものを消し、訂正後の内容を覚え直す
+export async function reviseMemories(input: {
+  person: string;
+  memories: { id: string; content: string }[];
+  original: string;
+  correction: string;
+}) {
+  const response = await client.messages.parse({
+    model: MODEL,
+    max_tokens: 1024,
+    output_config: { effort: "low", format: zodOutputFormat(Revision) },
+    system: `あなたはチャットツール Smooo で、${input.person}さんの AI が覚えている内容を管理する係です。
+${input.person}さんが、自分の名前で出た投稿を訂正しました。
+
+- 覚えている内容のうち、訂正と食い違うものの id を remove_ids に入れる。食い違わないものは残す
+- 訂正から分かる、${input.person}さん自身についての事実を add に1文で書く。
+  「〜への答え: 〜」の形に揃えなくてよい。覚えることがなければ空にする`,
+    messages: [
+      {
+        role: "user",
+        content: `覚えていること:
+${input.memories.map((m) => `- [${m.id}] ${m.content}`).join("\n") || "（なし）"}
+
+元の投稿: ${input.original}
+訂正: ${input.correction}`,
+      },
+    ],
+  });
+  const known = new Set(input.memories.map((m) => m.id));
+  const revision = response.parsed_output;
+  return {
+    removeIds: (revision?.remove_ids ?? []).filter((id) => known.has(id)),
+    add: revision?.add.trim() ?? "",
+  };
 }

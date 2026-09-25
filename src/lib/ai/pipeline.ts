@@ -3,6 +3,7 @@ import { formatMessage, type Audience, type Person } from "./format";
 import {
   classifyMemory,
   decide,
+  reviseMemories,
   draftFromAnswer,
   draftWithoutAnswer,
   whoMustRespond,
@@ -54,6 +55,10 @@ async function loadRecent(channelId: string, before: string): Promise<Line[]> {
 // その人が、このチャンネルで使ってよい記憶。社内で覚えたものは社内のチャンネルでだけ使い、
 // 社外も入るチャンネルで覚えたものは、そのチャンネルでだけ使う。general はどこでも使う
 async function loadMemories(userId: string, channel: Channel) {
+  return (await loadMemoryRows(userId, channel)).map((m) => m.content);
+}
+
+async function loadMemoryRows(userId: string, channel: Channel) {
   const admin = createAdminClient();
   const here =
     channel.audience === "internal"
@@ -61,13 +66,24 @@ async function loadMemories(userId: string, channel: Channel) {
       : `and(scope.eq.channel,channel_id.eq.${channel.id})`;
   const { data, error } = await admin
     .from("memories")
-    .select("content")
+    .select("id, content")
     .eq("user_id", userId)
     .or(`scope.eq.general,${here}`)
     .order("created_at")
     .limit(200);
   if (error) throw error;
-  return (data ?? []).map((m) => m.content);
+  return data ?? [];
+}
+
+// 新しく覚えることの置き場所。社外とのチャンネルで覚えたことはそのチャンネル専用。
+// 社内で覚えたことは、社外に伝わっても困らないものだけ、どの相手にも使ってよい記憶にする
+async function memoryScopeFor(channel: Channel, question: string, answer: string) {
+  if (channel.audience === "external") {
+    return { scope: "channel", organization_id: channel.organization_id, channel_id: channel.id };
+  }
+  return (await classifyMemory({ question, answer })) === "general"
+    ? { scope: "general", organization_id: null, channel_id: null }
+    : { scope: "internal", organization_id: channel.organization_id, channel_id: null };
 }
 
 // チャンネルのほかの参加者が、書く人から見て同じ会社か社外か。所属する Organization が一つでも重なれば同じ会社
@@ -127,7 +143,9 @@ export async function respondToMessage(messageId: string) {
   const admin = createAdminClient();
   const { data: message, error: messageError } = await admin
     .from("messages")
-    .select("id, channel_id, author_id, body, origin, created_at, profiles!messages_author_id_fkey(display_name)")
+    .select(
+      "id, channel_id, author_id, body, origin, created_at, corrects, profiles!messages_author_id_fkey(display_name), parent:reply_to(body, profiles!messages_author_id_fkey(display_name))",
+    )
     .eq("id", messageId)
     .single();
   // 問い合わせの失敗を「対象外」と取り違えない。あいまいな結合で黙って止まったことがある
@@ -136,7 +154,15 @@ export async function respondToMessage(messageId: string) {
 
   const channel = await loadChannel(message.channel_id);
   const recent = await loadRecent(channel.id, message.created_at);
-  const trigger: Line = { author: message.profiles?.display_name ?? "?", body: message.body };
+  // 返信や訂正なら、どの投稿に向けたものかを本文に添える。添えないと、返信先の人ではなく
+  // 本文に名前の出てくる人が選ばれる（鈴木さんへの返信に佐藤さんの AI が答えたことがある）
+  const parent = message.parent
+    ? `（${message.parent.profiles?.display_name ?? "?"}さんの投稿「${message.parent.body}」${message.corrects ? "の訂正" : "への返信"}）`
+    : "";
+  const trigger: Line = {
+    author: message.profiles?.display_name ?? "?",
+    body: parent ? `${parent}\n${message.body}` : message.body,
+  };
 
   const { data: members } = await admin
     .from("channel_members")
@@ -210,14 +236,7 @@ export async function respondWithAnswer(questionId: string) {
 
   const channel = await loadChannel(q.channel_id);
   const content = `「${q.prompt}」への答え: ${q.answer}`;
-  // 社外とのチャンネルで覚えたことは、そのチャンネル専用。社内で覚えたことは、
-  // 社外に伝わっても困らないものだけ、どの相手にも使ってよい記憶にする
-  const memory =
-    channel.audience === "external"
-      ? { scope: "channel", organization_id: channel.organization_id, channel_id: channel.id }
-      : (await classifyMemory({ question: q.prompt, answer: q.answer })) === "general"
-        ? { scope: "general", organization_id: null, channel_id: null }
-        : { scope: "internal", organization_id: channel.organization_id, channel_id: null };
+  const memory = await memoryScopeFor(channel, q.prompt, q.answer);
   const { error: memoryError } = await admin
     .from("memories")
     .insert({ user_id: q.user_id, content, ...memory });
@@ -267,4 +286,45 @@ export async function answerOverdueQuestions() {
 
   for (const r of results) if (r.status === "rejected") console.error("answerOverdueQuestions", r.reason);
   return { handled: results.length, failed: results.filter((r) => r.status === "rejected").length };
+}
+
+// 本人が自分の名前の投稿を訂正したら、その人の AI が覚えている内容を直す
+export async function reviseAfterCorrection(correctionId: string) {
+  const admin = createAdminClient();
+  const { data: correction, error } = await admin
+    .from("messages")
+    .select("id, author_id, channel_id, body, corrects, profiles!messages_author_id_fkey(display_name)")
+    .eq("id", correctionId)
+    .single();
+  if (error) throw error;
+  if (!correction.corrects) return;
+
+  const { data: original, error: originalError } = await admin
+    .from("messages")
+    .select("body")
+    .eq("id", correction.corrects)
+    .single();
+  if (originalError) throw originalError;
+
+  const channel = await loadChannel(correction.channel_id);
+  const rows = await loadMemoryRows(correction.author_id, channel);
+  const { removeIds, add } = await reviseMemories({
+    person: correction.profiles?.display_name ?? "?",
+    memories: rows,
+    original: original.body,
+    correction: correction.body,
+  });
+
+  if (removeIds.length) {
+    const { error: deleteError } = await admin.from("memories").delete().in("id", removeIds);
+    if (deleteError) throw deleteError;
+  }
+  if (add) {
+    const memory = await memoryScopeFor(channel, original.body, add);
+    const { error: insertError } = await admin
+      .from("memories")
+      .insert({ user_id: correction.author_id, content: add, ...memory });
+    if (insertError) throw insertError;
+  }
+  console.info("reviseAfterCorrection", correctionId, { removed: removeIds.length, added: !!add });
 }

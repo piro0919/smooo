@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
-import { SendHorizontal } from "lucide-react";
+import { SendHorizontal, X } from "lucide-react";
+import { useComposerTarget } from "./ComposerTarget";
 import { postMessage, type PostState } from "@/app/o/[orgId]/c/[channelId]/actions";
 
 // Slack と同じく Enter で送信、Shift+Enter で改行。日本語の変換中の Enter では送らない
@@ -20,16 +21,44 @@ export function Composer({
     postMessage.bind(null, orgId, channelId),
     {},
   );
+  const { target, setTarget } = useComposerTarget();
 
   useEffect(() => {
     if (!state.sent || !textRef.current) return;
     textRef.current.value = "";
     textRef.current.focus();
-  }, [state.sent]);
+    setTarget(null);
+  }, [state.sent, setTarget]);
+
+  // 返信や訂正を選んだら、すぐ打てるようにする
+  useEffect(() => {
+    if (target) textRef.current?.focus();
+  }, [target]);
 
   return (
     <form ref={formRef} action={action} className="px-5 pb-5">
-      <div className="rounded-lg border border-zinc-300 focus-within:border-zinc-500">
+      {target && (
+        <>
+          <input type="hidden" name={target.kind === "correct" ? "corrects" : "reply_to"} value={target.id} />
+          <div className="flex items-center gap-2 rounded-t-lg border border-b-0 border-zinc-300 bg-zinc-50 px-3 py-1.5 text-xs">
+            <span className="shrink-0 font-bold">
+              {target.kind === "correct" ? "訂正する投稿" : `${target.author}さんへの返信`}
+            </span>
+            <span className="truncate text-muted-foreground">{target.body}</span>
+            <button
+              type="button"
+              aria-label="取り消す"
+              className="ml-auto shrink-0 rounded p-0.5 hover:bg-zinc-200"
+              onClick={() => setTarget(null)}
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        </>
+      )}
+      <div
+        className={`border border-zinc-300 focus-within:border-zinc-500 ${target ? "rounded-b-lg" : "rounded-lg"}`}
+      >
         <textarea
           ref={textRef}
           name="raw"
@@ -47,7 +76,11 @@ export function Composer({
         />
         <div className="flex items-center justify-between px-2 pb-2">
           <span className="text-xs text-muted-foreground">
-            {pending ? "文面を整えています…" : "送った文章は整えてから投稿されます"}
+            {pending
+              ? "文面を整えています…"
+              : target?.kind === "correct"
+                ? "訂正の内容を打ってください。元の投稿は残ります"
+                : "送った文章は整えてから投稿されます"}
           </span>
           <button
             type="submit"

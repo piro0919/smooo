@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { formatFor, loadChannel, respondToMessage } from "@/lib/ai/pipeline";
+import { formatFor, loadChannel, respondToMessage, reviseAfterCorrection } from "@/lib/ai/pipeline";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -35,6 +35,20 @@ export async function postMessage(
     .maybeSingle();
   if (!channel) return { error: "このチャンネルには投稿できません。", raw };
 
+  // 返信先と訂正先は、同じチャンネルの投稿に限る。訂正できるのは自分の名前の投稿だけ
+  const replyTo = String(formData.get("reply_to") ?? "") || null;
+  const corrects = String(formData.get("corrects") ?? "") || null;
+  const target = corrects ?? replyTo;
+  if (target) {
+    const { data: parent } = await supabase
+      .from("messages")
+      .select("author_id, channel_id")
+      .eq("id", target)
+      .maybeSingle();
+    if (!parent || parent.channel_id !== channelId) return { error: "返信先の投稿が見つかりません。", raw };
+    if (corrects && parent.author_id !== user.id) return { error: "訂正できるのは自分の投稿だけです。", raw };
+  }
+
   let body: string;
   try {
     body = await formatFor(user.id, await loadChannel(channelId), raw);
@@ -46,7 +60,7 @@ export async function postMessage(
   const admin = createAdminClient();
   const { data: message, error } = await admin
     .from("messages")
-    .insert({ channel_id: channelId, author_id: user.id, body })
+    .insert({ channel_id: channelId, author_id: user.id, body, reply_to: target, corrects })
     .select("id")
     .single();
   if (error) return { error: "投稿できませんでした。", raw };
@@ -63,6 +77,7 @@ export async function postMessage(
   // 返事を求められた人の AI が、答えるか本人に聞く。投稿した人を待たせないよう後で動かす
   after(async () => {
     try {
+      if (corrects) await reviseAfterCorrection(message.id);
       await respondToMessage(message.id);
     } catch (error) {
       console.error("respondToMessage", error);
