@@ -1,5 +1,5 @@
 import "server-only";
-import { formatMessage, type Audience } from "./format";
+import { formatMessage, type Audience, type Person } from "./format";
 import { decide, draftFromAnswer, draftWithoutAnswer, whoMustRespond, type Autonomy, type Line } from "./respond";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -44,10 +44,36 @@ async function loadMemories(userId: string, channel: Channel) {
   return (data ?? []).map((m) => m.content);
 }
 
+// チャンネルのほかの参加者が、書く人から見て同じ会社か社外か。所属する Organization が一つでも重なれば同じ会社
+export async function peopleFor(authorId: string, channelId: string): Promise<Person[]> {
+  const admin = createAdminClient();
+  const { data: members } = await admin
+    .from("channel_members")
+    .select("user_id, profiles(display_name)")
+    .eq("channel_id", channelId)
+    .neq("user_id", authorId);
+  const ids = [authorId, ...(members ?? []).map((m) => m.user_id)];
+  const { data: memberships } = await admin
+    .from("memberships")
+    .select("user_id, organization_id")
+    .in("user_id", ids);
+  const orgsOf = (id: string) =>
+    new Set((memberships ?? []).filter((m) => m.user_id === id).map((m) => m.organization_id));
+  const mine = orgsOf(authorId);
+  return (members ?? []).map((m) => ({
+    name: m.profiles?.display_name ?? "?",
+    outside: ![...orgsOf(m.user_id)].some((o) => mine.has(o)),
+  }));
+}
+
 // 本人の名前で投稿する。下書きを整形係に通してから出し、下書きは本人にだけ見える形で残す
 async function postAs(userId: string, channel: Channel, draft: string, replyTo: string) {
   const admin = createAdminClient();
-  const body = await formatMessage(draft, channel);
+  const body = await formatMessage(
+    draft,
+    channel,
+    channel.audience === "external" ? await peopleFor(userId, channel.id) : [],
+  );
   const { data: message, error } = await admin
     .from("messages")
     .insert({ channel_id: channel.id, author_id: userId, body, reply_to: replyTo, origin: "ai" })

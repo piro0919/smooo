@@ -182,12 +182,29 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 
 | | Haiku 4.5 | Sonnet 5 |
 |---|---|---|
-| Clear failures on 30 unseen inputs | 3 | 0 |
+| Clear failures on 30 unseen inputs, first run | 3 | 0 |
 | Cost per message | $0.00076 | $0.00153 |
+
+Sonnet 5 turned out to be less clean than its first run suggested; see below.
 
 Haiku kept failing even after the prompt forbade it: it answered "？" with a note about having
 nothing to rewrite, swapped a manager and their report, and greeted a client with
 「お疲れ様です」. The note would have been posted as the person's own message.
+
+**One run per case measures luck, not the prompt.** On 2026-09-26 the exact prompt that scored
+0 clear failures on `cases2.json` scored 2–3 on a rerun, including the note-to-self kind
+(「上司(社内)への文面です。」 posted as the message). Run `cases2.json` three times
+(`ONLY=sonnet`) and read all of it.
+
+**The rewrite comes back as JSON, `{ "message": ... }`.** Three runs of `cases2.json` in this
+mode (`results_v5_unseen_json_run*.md`, 90 outputs): no notes-to-self, one clear failure
+(「？」 answered with a made-up request to confirm something).
+
+**Who is inside and who is outside goes in the recipient line, not the system prompt.** In a
+channel with outsiders, the line lists colleagues and outsiders and says: address colleagues
+as colleagues, never add a name the input did not use (`mixedAudience` in `format.ts`, same
+text in `cases_mixed.json`). Putting that rule in the system prompt made the model deliberate
+about addressees on every internal message too, and write the deliberation into the post.
 
 The prompt is `src/lib/ai/format-system.md`, shared by the app and `evals/format/run.py`. After
 changing it, run `cases2.json` as well —

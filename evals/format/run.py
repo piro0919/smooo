@@ -9,6 +9,7 @@ v3_unseen は SYSTEM を書くときに見ていない cases2.json を使って�
 """
 
 import json
+import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -26,20 +27,37 @@ MODELS = {
 }
 
 client = anthropic.Anthropic()
+
+# 本番と同じく、本文を JSON の message 欄で受け取る。欄の外に独り言が出ても本文に混ざらない
+MESSAGE_FORMAT = {
+    "type": "json_schema",
+    "schema": {
+        "type": "object",
+        "properties": {"message": {"type": "string"}},
+        "required": ["message"],
+        "additionalProperties": False,
+    },
+}
+# ONLY=sonnet で片方だけ回す
+if os.environ.get("ONLY"):
+    MODELS = {k: v for k, v in MODELS.items() if k == os.environ["ONLY"]}
 CASES, OUT = (sys.argv[1], sys.argv[2]) if len(sys.argv) > 2 else ("cases.json", "results.md")
 
 
 def rewrite(key: str, case: dict) -> dict:
     spec = MODELS[key]
     user = f"相手: {case['to']}（{case['scope']}）\n入力: {case['raw']}"
+    extra = dict(spec["extra"])
+    extra["output_config"] = {**extra.get("output_config", {}), "format": MESSAGE_FORMAT}
     resp = client.messages.create(
         model=spec["model"],
         max_tokens=1024,
         system=SYSTEM,
         messages=[{"role": "user", "content": user}],
-        **spec["extra"],
+        **extra,
     )
-    text = "".join(b.text for b in resp.content if b.type == "text").strip()
+    raw = "".join(b.text for b in resp.content if b.type == "text")
+    text = json.loads(raw)["message"].strip()
     pin, pout = spec["price"]
     cost = (resp.usage.input_tokens * pin + resp.usage.output_tokens * pout) / 1_000_000
     return {"text": text, "in": resp.usage.input_tokens, "out": resp.usage.output_tokens, "cost": cost}
@@ -55,12 +73,14 @@ def main() -> None:
     def cell(s: str) -> str:
         return s.replace("|", "\\|").replace("\n", "<br>")
 
-    lines = ["| # | To | Input | Haiku 4.5 | Sonnet 5 |", "| --- | --- | --- | --- | --- |"]
+    names = {"haiku": "Haiku 4.5", "sonnet": "Sonnet 5"}
+    lines = [
+        "| # | To | Input | " + " | ".join(names[k] for k in MODELS) + " |",
+        "| --- | --- | --- | " + " | ".join("---" for _ in MODELS) + " |",
+    ]
     for c in cases:
-        h, s = results[("haiku", c["id"])], results[("sonnet", c["id"])]
-        lines.append(
-            f"| {c['id']} | {c['to']}（{c['scope']}） | {cell(c['raw'])} | {cell(h['text'])} | {cell(s['text'])} |"
-        )
+        outs = " | ".join(cell(results[(k, c["id"])]["text"]) for k in MODELS)
+        lines.append(f"| {c['id']} | {cell(c['to'] + '（' + c['scope'] + '）')} | {cell(c['raw'])} | {outs} |")
     lines.append("")
     for k in MODELS:
         rs = [results[(k, c["id"])] for c in cases]
