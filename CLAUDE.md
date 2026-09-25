@@ -3,7 +3,8 @@
 # Smooo
 
 Looks like an ordinary chat app, except that people cannot post their own words. The spec was
-settled in one long discussion on 2026-09-26, and only the project skeleton exists so far.
+settled in one long discussion on 2026-09-26. So far there is sign-in, organisations, and
+channels; nothing can be posted yet.
 
 ## The core
 
@@ -16,6 +17,36 @@ wrote. A person is only asked something when their AI cannot answer on its own.
 
 The value is "you don't have to read or think", not "you don't have to write". Pitch it as "a
 chat app where AI polishes your messages" and it loses to pasting ChatGPT output into Slack.
+
+## Shape of the thing
+
+| path | what it does |
+|---|---|
+| `supabase/migrations/` | Organisations, profiles, memberships, channels, channel members, and who can see what |
+| `supabase/tests/rls_test.sql` | pgTAP tests for the above. Outsiders must never reach an internal channel |
+| `src/proxy.ts` | Refreshes the Supabase session on every request and sends signed-out people to `/login` |
+| `src/app/o/[orgId]/` | The Slack-shaped screen: organisation rail, channel list, channel |
+| `evals/format/` | The prompt that rewrites what people type, and how it was chosen |
+| `scripts/dev-session.mjs` | Makes a local test user and prints its session cookie, to check screens without Google |
+
+## Local development
+
+- **Supabase runs locally.** The free plan allows two active projects and Spatto and Chappie
+  hold both, so the cloud project gets created right before launch, on the paid plan that
+  launch needs anyway. Migrations are the source of truth, so moving is just applying them.
+- **Ports are 553xx, not 543xx,** so Spatto's local stack can run at the same time.
+- **Open the app at `http://127.0.0.1:3000`, not `localhost`.** Supabase redirects back to
+  127.0.0.1, and a session cookie set on one host is invisible on the other. `next.config.ts`
+  allows 127.0.0.1 as a dev origin; without it Next blocks its own hot reload socket and the
+  page never hydrates, so buttons silently do nothing.
+- **Checking a screen without Google:** run `scripts/dev-session.mjs` with `SUPABASE_SECRET_KEY`
+  from `supabase status -o env`, and hand the printed cookie to the browser. It refuses to talk
+  to anything but 127.0.0.1.
+- **Who sees what is decided in Postgres, not in pages.** Membership checks live in
+  `private.*` functions so policies do not recurse, and a trigger — not a policy — keeps
+  outsiders out of internal channels, so an invite path added later cannot open a hole.
+- **Everyone gets a personal organisation at sign-up.** A company organisation is joined later
+  by invitation, which does not exist yet.
 
 ## Key decisions
 
