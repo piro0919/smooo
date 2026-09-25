@@ -1,0 +1,17 @@
+# コミットの前に lint・型・秘密情報を確かめる
+pre-commit:
+  parallel: true
+  commands:
+    eslint:
+      glob: "**/*.{ts,tsx,mjs}"
+      run: npx eslint {staged_files}
+    secretlint:
+      glob: "**/*"
+      run: npx secretlint --maskSecrets {staged_files}
+    typescript:
+      glob: "**/*.{ts,tsx}"
+      run: npm run typecheck
+commit-msg:
+  commands:
+    commitlint:
+      run: npx commitlint --edit {1}

@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 環境変数
+!.env.example
+
+# 評価スクリプトの Python 環境
+.venv
+__pycache__
