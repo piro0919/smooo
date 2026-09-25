@@ -1,7 +1,7 @@
 -- 招待。社内だけのチャンネルへの招待は作れず、期限切れは使えず、社外の人はチャンネルにだけ入る
 begin;
 create extension if not exists pgtap;
-select plan(9);
+select plan(12);
 
 insert into auth.users (id, email) values
   ('aaaaaaaa-0000-0000-0000-0000000000a1', 'inv-a@example.test'),
@@ -62,6 +62,17 @@ select is(
 select is(
   (select count(*)::int from memberships where organization_id = (select org from ids)),
   0, '社外の人には、その会社の所属者の一覧は見えない');
+
+-- 抜ける。最後の owner は抜けられず、社員は抜けるとチャンネルも見えなくなる
+set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-0000000000a1"}';
+select throws_ok($$ select public.leave_organization((select org from ids)) $$,
+  '22023', 'the last owner cannot leave', '自分しか owner がいない会社は抜けられない');
+
+set local request.jwt.claims = '{"sub": "bbbbbbbb-0000-0000-0000-0000000000b1"}';
+select lives_ok($$ select public.leave_organization((select org from ids)) $$, '社員は抜けられる');
+select is(
+  (select count(*)::int from channels where organization_id = (select org from ids)),
+  0, '抜けたら、その会社のチャンネルは見えない');
 
 select * from finish();
 rollback;

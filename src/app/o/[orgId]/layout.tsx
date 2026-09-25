@@ -7,6 +7,7 @@ import { CreateChannelDialog } from "@/components/CreateChannelDialog";
 import { CreateOrgDialog } from "@/components/CreateOrgDialog";
 import { InviteDialog } from "@/components/InviteDialog";
 import { LiveSidebar } from "@/components/LiveSidebar";
+import { MembersDialog } from "@/components/MembersDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { StartDmDialog } from "@/components/StartDmDialog";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
       .neq("organization_id", orgId)
       .order("name"),
     supabase.from("questions").select("id", { count: "exact", head: true }).eq("status", "open"),
-    supabase.from("profiles").select("autonomy, onboarded_at").eq("id", userId).single(),
+    supabase.from("profiles").select("display_name, autonomy, onboarded_at").eq("id", userId).single(),
     // 自分の DM。相手の名前を出すので参加者も取る
     supabase
       .from("channels")
@@ -62,9 +63,8 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
       .eq("kind", "dm"),
     supabase
       .from("memberships")
-      .select("user_id, profiles(display_name)")
-      .eq("organization_id", orgId)
-      .neq("user_id", userId),
+      .select("user_id, role, profiles(display_name)")
+      .eq("organization_id", orgId),
     supabase.rpc("unread_channel_ids"),
   ]);
   const unread = new Set(unreadIds ?? []);
@@ -88,7 +88,15 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
       name: d.channel_members.find((m) => m.user_id !== userId)?.profiles?.display_name ?? "?",
     }))
     .sort((a, b) => a.name.localeCompare(b.name, "ja"));
-  const people = (orgPeople ?? []).map((m) => ({ id: m.user_id, name: m.profiles?.display_name ?? "?" }));
+  const members = (orgPeople ?? [])
+    .map((m) => ({
+      id: m.user_id,
+      name: m.profiles?.display_name ?? "?",
+      owner: m.role === "owner",
+      me: m.user_id === userId,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ja"));
+  const people = members.filter((m) => !m.me);
   const unjoined = (channels ?? []).filter((c) => !isMember(c));
   // 自分が所属している別の Organization のチャンネルは、そちらの画面に出るので除く
   const guestChannels = (shared ?? []).filter((c) => !mine.has(c.organization_id));
@@ -114,6 +122,8 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
       <aside className="flex w-[260px] shrink-0 flex-col bg-[#3f0e40] text-[#cfc3cf]">
         <header className="flex h-12 items-center justify-between gap-2 border-b border-white/10 pl-4 pr-2">
           <h1 className="truncate text-lg font-bold text-white">{org.name}</h1>
+          <div className="flex items-center">
+          <MembersDialog orgId={orgId} orgName={org.name} personal={org.personal} members={members} />
           <InviteDialog
             orgId={orgId}
             title={`${org.name} に招待する`}
@@ -127,6 +137,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
           >
             <UserPlus className="size-4" />
           </InviteDialog>
+          </div>
         </header>
         <div className="flex-1 overflow-y-auto py-3">
           <LiveSidebar userId={userId} />
@@ -196,7 +207,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
           )}
         </div>
         <div className="grid border-t border-white/10 p-2">
-          <SettingsDialog autonomy={me?.autonomy ?? "standard"} />
+          <SettingsDialog autonomy={me?.autonomy ?? "standard"} name={me?.display_name ?? ""} />
           <form action="/auth/signout" method="post">
             <button className="w-full rounded-md px-3 py-1 text-left text-sm hover:bg-white/10">
               ログアウト

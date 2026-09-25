@@ -128,6 +128,10 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   working-hours answer without asking.
 - **Everyone gets a personal organisation at sign-up.** A company organisation is created from
   the `+` on the rail, or joined through an invite link.
+- **Members are listed from "⋯" next to the organisation name, where you can also leave.**
+  `leave_organization` also takes you out of that company's channels and DMs. Nobody can leave
+  their personal organisation, and the last owner cannot leave a company — nobody would be
+  left to run it. Names change in 設定; avatars wait for file storage.
 - **Two kinds of invite link, both valid for seven days.** One makes you a member of the
   organisation. The other, only for channels open to outsiders, puts you in that one channel.
   Accepting goes through `accept_invite`, a security definer function, because the person

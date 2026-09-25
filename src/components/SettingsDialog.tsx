@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { Settings } from "lucide-react";
-import { saveAutonomy, type SettingsState } from "@/app/settings-actions";
+import { saveSettings, type SettingsState } from "@/app/settings-actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -34,8 +35,8 @@ const CHOICES = [
   },
 ];
 
-export function SettingsDialog({ autonomy }: { autonomy: string }) {
-  const [state, action, pending] = useActionState<SettingsState, FormData>(saveAutonomy, {});
+export function SettingsDialog({ autonomy, name }: { autonomy: string; name: string }) {
+  const [state, action, pending] = useActionState<SettingsState, FormData>(saveSettings, {});
 
   return (
     <Dialog>
@@ -50,11 +51,16 @@ export function SettingsDialog({ autonomy }: { autonomy: string }) {
       <DialogContent>
         <form action={action} className="grid gap-5">
           <DialogHeader>
-            <DialogTitle>AI に任せる範囲</DialogTitle>
-            <DialogDescription>
-              あなたに向けられた質問に、AI があなたに聞かずに答えてよい範囲です。
-            </DialogDescription>
+            <DialogTitle>設定</DialogTitle>
           </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="display-name">名前</Label>
+            <Input id="display-name" name="display_name" defaultValue={name} key={name} required />
+          </div>
+          <div className="grid gap-1">
+            <p className="text-sm font-medium">AI に任せる範囲</p>
+            <DialogDescription>あなたに向けられた質問に、AI があなたに聞かずに答えてよい範囲です。</DialogDescription>
+          </div>
           <RadioGroup key={autonomy} name="autonomy" defaultValue={autonomy} className="gap-4">
             {CHOICES.map((c) => (
               <Label key={c.value} className="flex items-start gap-3 font-normal">

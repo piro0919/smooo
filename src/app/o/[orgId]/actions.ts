@@ -70,3 +70,17 @@ export async function markRead(orgId: string, channelId: string) {
     .upsert({ user_id: user.id, channel_id: channelId, last_read_at: new Date().toISOString() });
   revalidatePath(`/o/${orgId}`, "layout");
 }
+
+export type LeaveState = { error?: string };
+
+export async function leaveOrganization(orgId: string): Promise<LeaveState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("leave_organization", { org: orgId });
+  if (error) {
+    if (error.message.includes("last owner")) {
+      return { error: "あなたしか owner がいないため、抜けられません。" };
+    }
+    return { error: "抜けられませんでした。" };
+  }
+  redirect("/");
+}

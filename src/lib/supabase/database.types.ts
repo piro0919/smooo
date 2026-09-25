@@ -555,6 +555,7 @@ export type Database = {
       }
       create_dm: { Args: { org: string; other: string }; Returns: string }
       create_organization: { Args: { name: string }; Returns: string }
+      leave_organization: { Args: { org: string }; Returns: undefined }
       unread_channel_ids: { Args: never; Returns: string[] }
     }
     Enums: {
