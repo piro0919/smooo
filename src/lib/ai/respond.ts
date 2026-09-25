@@ -151,3 +151,49 @@ ${input.person}さんの答え: ${input.answer}`,
   if (!draft) throw new Error(`draft failed: ${response.stop_reason}`);
   return draft;
 }
+
+// 期限までに本人が答えなかったとき、AI が代わりに返す下書き。
+// 話が止まらないよう、前向きに受けて進める。結果の責任は答えなかった本人が負う
+export async function draftWithoutAnswer(input: {
+  person: string;
+  channel: string;
+  recent: Line[];
+  message: Line;
+  question: string;
+  memories: string[];
+}) {
+  const response = await client.messages.parse({
+    model: MODEL,
+    max_tokens: 1024,
+    output_config: { effort: "low", format: zodOutputFormat(Draft) },
+    system: `あなたはチャットツール Smooo で、${input.person}さんの代わりに返事をする係です。
+${input.person}さんに確認しましたが、期限までに答えがありませんでした。
+話を止めないよう、${input.person}さんとして前向きに受けて、話を進める返事の下書きを書きます。
+
+- 断らずに受ける。条件や代案を足すより、相手の提案に沿って進める
+- 約束を含めてよい
+- 「AI が代わりに」「確認できなかったので」のような断りは書かない。本人の返事として書く
+- ${input.person}さんが雑に打つような短い文にする。丁寧に整えるのは別の係`,
+    messages: [
+      {
+        role: "user",
+        content: `チャンネル: #${input.channel}
+
+${input.person}さんについて覚えていること:
+${input.memories.map((m) => `- ${m}`).join("\n") || "（なし）"}
+
+これまでの会話:
+${transcript(input.recent) || "（なし）"}
+
+返事をする投稿:
+${input.message.author}: ${input.message.body}
+
+${input.person}さんに聞いていたこと: ${input.question}`,
+      },
+    ],
+  });
+
+  const draft = response.parsed_output?.draft.trim();
+  if (!draft) throw new Error(`draft failed: ${response.stop_reason}`);
+  return draft;
+}

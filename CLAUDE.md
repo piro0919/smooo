@@ -6,8 +6,7 @@ Looks like an ordinary chat app, except that people cannot post their own words.
 settled in one long discussion on 2026-09-26. So far there is sign-in, organisations, channels, and
 posting — what someone types is rewritten by Sonnet 5 and only the rewrite reaches the
 channel — invite links, and the AI answering for people: when someone is asked something, their
-AI answers from memory or asks them first. Answering for someone past the deadline is not
-built yet.
+AI answers from memory or asks them first, and answers for them once the deadline passes.
 
 ## The core
 
@@ -35,6 +34,7 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 | `src/app/o/[orgId]/c/[channelId]/actions.ts` | Posting: check membership, rewrite, then write with the secret key |
 | `src/lib/ai/respond.ts` | Who has to answer a post, whether their AI can answer or must ask, and drafting from an answer |
 | `src/lib/ai/pipeline.ts` | Runs the above after a post or an answer, and posts in the person's name |
+| `src/app/api/cron/deadlines/` | Every 5 minutes: answer for people who let a question expire. Guarded by `CRON_SECRET` |
 | `src/app/o/[orgId]/questions/` | "あなたへの質問": what the AI needs from you, answered with one tap |
 | `supabase/tests/questions_test.sql` | Questions are readable only by the person asked; memory by nobody |
 | `src/lib/ai/format-system.md` | The rewriting prompt. `evals/format/run.py` reads the same file |
@@ -75,6 +75,10 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   picks who has to answer; then, per person, one call decides "answer from memory" or "ask".
   Either way something is posted in their name: the answer, or "確認して返します". Answering a
   question saves it to memory and posts the reply. Roughly 5 seconds end to end.
+- **Past the deadline, `answerOverdueQuestions` flips `open` to `expired` and answers only the
+  rows it flipped,** so overlapping cron runs cannot answer twice. The reply is yes-and, may
+  commit, and is not saved to memory: nobody said it. Every-5-minutes cron needs Vercel's paid
+  plan, which launch assumes anyway. Locally, call the route with the secret from `.env.local`.
 - **AI drafts go through the same rewriting prompt as typed text.** The deciding model writes
   what the person would have typed, and `formatMessage` polishes it. One prompt to evaluate.
 - **AIs do not react to AI posts.** `messages.origin` is `human` or `ai`, and only `human` posts

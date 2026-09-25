@@ -1,6 +1,6 @@
 import "server-only";
 import { formatMessage, type Audience } from "./format";
-import { decide, draftFromAnswer, whoMustRespond, type Line } from "./respond";
+import { decide, draftFromAnswer, draftWithoutAnswer, whoMustRespond, type Line } from "./respond";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const RECENT = 20;
@@ -149,4 +149,37 @@ export async function respondWithAnswer(questionId: string) {
     answer: q.answer,
   });
   await postAs(q.user_id, channel, draft, q.message_id);
+}
+
+// 期限を過ぎた質問に、本人の AI が代わりに返す。推測で返したことは記憶に残さない。
+// 同じ質問を二度処理しないよう、open から expired に変えられたものだけを扱う
+export async function answerOverdueQuestions() {
+  const admin = createAdminClient();
+  const { data: due } = await admin
+    .from("questions")
+    .update({ status: "expired" })
+    .eq("status", "open")
+    .lt("deadline", new Date().toISOString())
+    .select("id, user_id, prompt, channel_id, message_id, profiles(display_name), messages(body, created_at, profiles(display_name))");
+
+  const results = await Promise.allSettled(
+    (due ?? []).map(async (q) => {
+      const channel = await loadChannel(q.channel_id);
+      const draft = await draftWithoutAnswer({
+        person: q.profiles?.display_name ?? "?",
+        channel: channel.name,
+        recent: await loadRecent(channel.id, q.messages?.created_at ?? new Date().toISOString()),
+        message: {
+          author: q.messages?.profiles?.display_name ?? "?",
+          body: q.messages?.body ?? "",
+        },
+        question: q.prompt,
+        memories: await loadMemories(q.user_id, channel),
+      });
+      await postAs(q.user_id, channel, draft, q.message_id);
+    }),
+  );
+
+  for (const r of results) if (r.status === "rejected") console.error("answerOverdueQuestions", r.reason);
+  return { handled: results.length, failed: results.filter((r) => r.status === "rejected").length };
 }

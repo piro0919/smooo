@@ -2,7 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 
-const PUBLIC_PATHS = ["/login", "/auth/"];
+// /api/cron はログインではなく CRON_SECRET で守る
+const PUBLIC_PATHS = ["/login", "/auth/", "/api/cron/"];
 
 // リクエストのたびにセッションを更新し、Cookie を揃える。
 // ログインしていなければログイン画面へ送る。本当の権限の判定は RLS が行う
