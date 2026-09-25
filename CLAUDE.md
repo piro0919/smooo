@@ -27,6 +27,7 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 | `supabase/migrations/` | Organisations, profiles, memberships, channels, channel members, and who can see what |
 | `supabase/tests/rls_test.sql` | pgTAP tests for the above. Outsiders must never reach an internal channel |
 | `src/proxy.ts` | Refreshes the Supabase session on every request and sends signed-out people to `/login` |
+| `supabase/tests/dms_test.sql` | A DM is invisible to everyone but its two people; one DM per pair |
 | `supabase/tests/invites_test.sql` | Invites: none for internal channels, expired links refused, outsiders land in one channel only |
 | `src/app/join/[token]/` | Where an invite link lands. Signed-out people go through `/login` and come back |
 | `supabase/tests/messages_test.sql` | Nobody can write a post directly, and only the author reads what they typed |
@@ -145,6 +146,10 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 - **Reactions are the AI's job too.**
 - **Channels and DMs, like Slack.** The AI keeps track of which topic each post belongs to;
   the screen only shows a quote of the post being replied to. This is provisional.
+- **A DM is a channel with `kind = 'dm'`, between two people in the same organisation.** Nobody
+  else in the organisation can see that it exists, let alone its posts. It is only created
+  through `create_dm`, which returns the existing DM if there is one. DMs with outsiders are
+  not built. The formatter is told "1対1, 社内" and the name of the other person.
 
 ### Asking the human
 

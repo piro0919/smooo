@@ -32,15 +32,18 @@ export function mixedAudience(inside: string[], outside: string[]) {
 // 社外の人もいるチャンネルでは、誰が同じ会社で誰が社外かを渡し、宛先に合わせて書き分けさせる
 export async function formatMessage(
   raw: string,
-  channel: { name: string; audience: Audience },
+  channel: { name: string | null; audience: Audience },
   people: Person[] = [],
+  // DM なら相手の名前
+  dmWith?: string,
 ) {
   const inside = people.filter((p) => !p.outside).map((p) => p.name);
   const outside = people.filter((p) => p.outside).map((p) => p.name);
   // 書き分けの指示は、社外の人がいるときだけ相手欄に添える。指示文そのものに足すと、
   // 社内の投稿でも宛名を考え込み、考えたことを本文に書き出した（evals/format/results_v4_unseen.md の #12）
-  const to =
-    channel.audience === "external"
+  const to = dmWith
+    ? `${dmWith}さん（社内。1対1のメッセージ）`
+    : channel.audience === "external"
       ? `#${channel.name} の参加者（社外の人を含む${people.length ? mixedAudience(inside, outside) : ""}）`
       : `#${channel.name} の参加者（社内）`;
 

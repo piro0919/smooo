@@ -73,7 +73,8 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
-          name: string
+          kind: string
+          name: string | null
           organization_id: string
         }
         Insert: {
@@ -81,7 +82,8 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
-          name: string
+          kind?: string
+          name?: string | null
           organization_id: string
         }
         Update: {
@@ -89,7 +91,8 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
-          name?: string
+          kind?: string
+          name?: string | null
           organization_id?: string
         }
         Relationships: [
@@ -504,6 +507,7 @@ export type Database = {
           organization_id: string
         }[]
       }
+      create_dm: { Args: { org: string; other: string }; Returns: string }
       create_organization: { Args: { name: string }; Returns: string }
     }
     Enums: {

@@ -8,6 +8,7 @@ import { CreateOrgDialog } from "@/components/CreateOrgDialog";
 import { InviteDialog } from "@/components/InviteDialog";
 import { LiveQuestions } from "@/components/LiveQuestions";
 import { SettingsDialog } from "@/components/SettingsDialog";
+import { StartDmDialog } from "@/components/StartDmDialog";
 import { cn } from "@/lib/utils";
 
 const itemClass = "flex items-center gap-2 rounded-md px-3 py-1 text-[15px] hover:bg-white/10";
@@ -27,6 +28,8 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
     { data: shared },
     { count: openQuestions },
     { data: me },
+    { data: dms },
+    { data: orgPeople },
   ] = await Promise.all([
     supabase
       .from("memberships")
@@ -37,17 +40,30 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
       .from("channels")
       .select("id, name, audience, channel_members(user_id)")
       .eq("organization_id", orgId)
+      .eq("kind", "channel")
       .order("name"),
     // 社外の会社に招かれたチャンネル。自分の側のサイドバーに出す
     supabase
       .from("channels")
       .select("id, name, organization_id, organizations(name), channel_members!inner(user_id)")
       .eq("audience", "external")
+      .eq("kind", "channel")
       .eq("channel_members.user_id", userId)
       .neq("organization_id", orgId)
       .order("name"),
     supabase.from("questions").select("id", { count: "exact", head: true }).eq("status", "open"),
     supabase.from("profiles").select("autonomy, onboarded_at").eq("id", userId).single(),
+    // 自分の DM。相手の名前を出すので参加者も取る
+    supabase
+      .from("channels")
+      .select("id, channel_members(user_id, profiles(display_name))")
+      .eq("organization_id", orgId)
+      .eq("kind", "dm"),
+    supabase
+      .from("memberships")
+      .select("user_id, profiles(display_name)")
+      .eq("organization_id", orgId)
+      .neq("user_id", userId),
   ]);
 
   // 使い始めの数問がまだなら、先にそちらへ
@@ -61,6 +77,13 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
   const isMember = (c: { channel_members: { user_id: string }[] }) =>
     c.channel_members.some((m) => m.user_id === userId);
   const joined = (channels ?? []).filter(isMember);
+  const dmList = (dms ?? [])
+    .map((d) => ({
+      id: d.id,
+      name: d.channel_members.find((m) => m.user_id !== userId)?.profiles?.display_name ?? "?",
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ja"));
+  const people = (orgPeople ?? []).map((m) => ({ id: m.user_id, name: m.profiles?.display_name ?? "?" }));
   const unjoined = (channels ?? []).filter((c) => !isMember(c));
   // 自分が所属している別の Organization のチャンネルは、そちらの画面に出るので除く
   const guestChannels = (shared ?? []).filter((c) => !mine.has(c.organization_id));
@@ -128,10 +151,26 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
               </li>
             ))}
             <li>
-              <BrowseChannelsDialog orgId={orgId} channels={unjoined} />
+              <BrowseChannelsDialog orgId={orgId} channels={unjoined.map((c) => ({ ...c, name: c.name ?? "" }))} />
             </li>
             <li>
               <CreateChannelDialog orgId={orgId} />
+            </li>
+          </ul>
+          <p className="px-4 pb-1 pt-4 text-[15px]">ダイレクトメッセージ</p>
+          <ul className="grid px-2">
+            {dmList.map((d) => (
+              <li key={d.id}>
+                <Link href={`/o/${orgId}/c/${d.id}`} className={itemClass}>
+                  <span className="flex size-4 shrink-0 items-center justify-center rounded-sm bg-white/20 text-[10px] font-bold">
+                    {d.name.slice(0, 1)}
+                  </span>
+                  <span className="truncate">{d.name}</span>
+                </Link>
+              </li>
+            ))}
+            <li>
+              <StartDmDialog orgId={orgId} people={people} />
             </li>
           </ul>
           {guestChannels.length > 0 && (

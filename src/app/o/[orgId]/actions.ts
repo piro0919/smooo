@@ -49,3 +49,11 @@ export async function joinChannel(orgId: string, channelId: string) {
   await supabase.from("channel_members").insert({ channel_id: channelId, user_id: user.id });
   revalidatePath(`/o/${orgId}`, "layout");
 }
+
+export async function startDm(orgId: string, otherId: string) {
+  const supabase = await createClient();
+  const { data: dm, error } = await supabase.rpc("create_dm", { org: orgId, other: otherId });
+  if (error || !dm) throw error ?? new Error("create_dm returned nothing");
+  revalidatePath(`/o/${orgId}`, "layout");
+  redirect(`/o/${orgId}/c/${dm}`);
+}

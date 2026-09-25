@@ -15,7 +15,7 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
   const [{ data: channel }, { data: auth }] = await Promise.all([
     supabase
       .from("channels")
-      .select("id, name, audience, organization_id, organizations(name), channel_members(user_id)")
+      .select("id, name, kind, audience, organization_id, organizations(name), channel_members(user_id, profiles(display_name))")
       .eq("id", channelId)
       .maybeSingle(),
     supabase.auth.getUser(),
@@ -28,6 +28,11 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
   const isGuest = channel.organization_id !== orgId;
   if (isGuest && !(channel.audience === "external" && isMember)) notFound();
   const Icon = channel.audience === "external" ? Globe : Hash;
+  const isDm = channel.kind === "dm";
+  // DM は相手の名前で呼ぶ
+  const title = isDm
+    ? (channel.channel_members.find((m) => m.user_id !== auth.user?.id)?.profiles?.display_name ?? "?")
+    : channel.name!;
 
   // 新しい順に100件取り、古い順に並べ直す
   const [{ data: latest }, { data: sources }, { data: reactions }] = isMember
@@ -64,9 +69,9 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
   return (
     <>
       <header className="flex h-12 shrink-0 items-center gap-2 border-b px-5">
-        <Icon className="size-4" />
-        <h2 className="truncate text-lg font-bold">{channel.name}</h2>
-        {isGuest ? (
+        {!isDm && <Icon className="size-4" />}
+        <h2 className="truncate text-lg font-bold">{title}</h2>
+        {isDm ? null : isGuest ? (
           <span className="text-sm text-muted-foreground">{channel.organizations?.name} とのチャンネル</span>
         ) : (
           channel.audience === "external" && (
@@ -92,7 +97,7 @@ export default async function ChannelPage({ params }: PageProps<"/o/[orgId]/c/[c
         <>
           <LiveRefresh channelId={channelId} />
           <MessageList messages={messages} sources={rawById} reactions={reactionsById} />
-          <Composer orgId={orgId} channelId={channelId} channelName={channel.name} />
+          <Composer orgId={orgId} channelId={channelId} placeholder={isDm ? `${title}さんへ` : `#${title} へ`} />
         </>
       ) : (
         <div className="flex flex-1 items-center justify-center p-8 text-center text-muted-foreground">

@@ -13,17 +13,29 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const RECENT = 20;
 
-type Channel = { id: string; name: string; audience: Audience; organization_id: string };
+type Channel = {
+  id: string;
+  name: string | null;
+  kind: string;
+  audience: Audience;
+  organization_id: string;
+  // プロンプトに書く場所の名前。チャンネルは #名前、DM は「DM」
+  label: string;
+};
 
-async function loadChannel(channelId: string): Promise<Channel> {
+export async function loadChannel(channelId: string): Promise<Channel> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("channels")
-    .select("id, name, audience, organization_id")
+    .select("id, name, kind, audience, organization_id")
     .eq("id", channelId)
     .single();
   if (error) throw error;
-  return { ...data, audience: data.audience === "external" ? "external" : "internal" };
+  return {
+    ...data,
+    audience: data.audience === "external" ? "external" : "internal",
+    label: data.kind === "dm" ? "1対1の DM" : `#${data.name}`,
+  };
 }
 
 // 直近の会話。古い順に並べる
@@ -80,14 +92,23 @@ export async function peopleFor(authorId: string, channelId: string): Promise<Pe
   }));
 }
 
+// 書く人から見た宛先を添えて整形する。DM なら相手の名前、社外もいるチャンネルなら内訳
+export async function formatFor(authorId: string, channel: Channel, raw: string) {
+  if (channel.kind === "dm") {
+    const [other] = await peopleFor(authorId, channel.id);
+    return formatMessage(raw, channel, [], other?.name);
+  }
+  return formatMessage(
+    raw,
+    channel,
+    channel.audience === "external" ? await peopleFor(authorId, channel.id) : [],
+  );
+}
+
 // 本人の名前で投稿する。下書きを整形係に通してから出し、下書きは本人にだけ見える形で残す
 async function postAs(userId: string, channel: Channel, draft: string, replyTo: string) {
   const admin = createAdminClient();
-  const body = await formatMessage(
-    draft,
-    channel,
-    channel.audience === "external" ? await peopleFor(userId, channel.id) : [],
-  );
+  const body = await formatFor(userId, channel, draft);
   const { data: message, error } = await admin
     .from("messages")
     .insert({ channel_id: channel.id, author_id: userId, body, reply_to: replyTo, origin: "ai" })
@@ -129,7 +150,7 @@ export async function respondToMessage(messageId: string) {
   }));
 
   const { respondents, reactions } = await whoMustRespond({
-    channel: channel.name,
+    channel: channel.label,
     recent,
     message: trigger,
     members: people.map(({ user_id, name }) => ({ user_id, name })),
@@ -153,7 +174,7 @@ export async function respondToMessage(messageId: string) {
       const decision = await decide({
         autonomy,
         person,
-        channel: channel.name,
+        channel: channel.label,
         recent,
         message: trigger,
         memories: await loadMemories(user_id, channel),
@@ -204,7 +225,7 @@ export async function respondWithAnswer(questionId: string) {
 
   const draft = await draftFromAnswer({
     person: q.profiles?.display_name ?? "?",
-    channel: channel.name,
+    channel: channel.label,
     message: {
       author: q.messages?.profiles?.display_name ?? "?",
       body: q.messages?.body ?? "",
@@ -231,7 +252,7 @@ export async function answerOverdueQuestions() {
       const channel = await loadChannel(q.channel_id);
       const draft = await draftWithoutAnswer({
         person: q.profiles?.display_name ?? "?",
-        channel: channel.name,
+        channel: channel.label,
         recent: await loadRecent(channel.id, q.messages?.created_at ?? new Date().toISOString()),
         message: {
           author: q.messages?.profiles?.display_name ?? "?",

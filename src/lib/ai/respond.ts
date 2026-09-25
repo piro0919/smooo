@@ -54,7 +54,7 @@ export async function whoMustRespond(input: {
     messages: [
       {
         role: "user",
-        content: `チャンネル: #${input.channel}
+        content: `場所: ${input.channel}
 参加者:
 ${input.members.map((m) => `- ${m.user_id}: ${m.name}`).join("\n")}
 
@@ -131,7 +131,7 @@ ${LIMITS[input.autonomy]}
     messages: [
       {
         role: "user",
-        content: `チャンネル: #${input.channel}
+        content: `場所: ${input.channel}
 
 ${input.person}さんについて覚えていること:
 ${input.memories.map((m) => `- ${m}`).join("\n") || "（なし）"}
@@ -171,7 +171,7 @@ ${input.person}さんが雑に打つような短い文にします。丁寧に�
     messages: [
       {
         role: "user",
-        content: `チャンネル: #${input.channel}
+        content: `場所: ${input.channel}
 返事をする投稿:
 ${input.message.author}: ${input.message.body}
 
@@ -211,7 +211,7 @@ ${input.person}さんに確認しましたが、期限までに答えがあり�
     messages: [
       {
         role: "user",
-        content: `チャンネル: #${input.channel}
+        content: `場所: ${input.channel}
 
 ${input.person}さんについて覚えていること:
 ${input.memories.map((m) => `- ${m}`).join("\n") || "（なし）"}

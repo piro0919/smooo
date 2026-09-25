@@ -8,11 +8,11 @@ import { postMessage, type PostState } from "@/app/o/[orgId]/c/[channelId]/actio
 export function Composer({
   orgId,
   channelId,
-  channelName,
+  placeholder,
 }: {
   orgId: string;
   channelId: string;
-  channelName: string;
+  placeholder: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -36,7 +36,7 @@ export function Composer({
           rows={3}
           key={state.raw ?? "composer"}
           defaultValue={state.raw}
-          placeholder={`#${channelName} へ。雑に打って大丈夫です`}
+          placeholder={`${placeholder}。雑に打って大丈夫です`}
           readOnly={pending}
           className="block w-full resize-none bg-transparent px-3 py-2 text-[15px] outline-none"
           onKeyDown={(e) => {

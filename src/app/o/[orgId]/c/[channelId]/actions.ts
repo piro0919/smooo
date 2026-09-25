@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { peopleFor, respondToMessage } from "@/lib/ai/pipeline";
-import { formatMessage } from "@/lib/ai/format";
+import { formatFor, loadChannel, respondToMessage } from "@/lib/ai/pipeline";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -38,12 +37,7 @@ export async function postMessage(
 
   let body: string;
   try {
-    const audience = channel.audience === "external" ? "external" : "internal";
-    body = await formatMessage(
-      raw,
-      { name: channel.name, audience },
-      audience === "external" ? await peopleFor(user.id, channelId) : [],
-    );
+    body = await formatFor(user.id, await loadChannel(channelId), raw);
   } catch (error) {
     console.error(error);
     return { error: "文面を整えられませんでした。もう一度送ってください。", raw };
