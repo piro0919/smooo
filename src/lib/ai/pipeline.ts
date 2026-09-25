@@ -1,6 +1,14 @@
 import "server-only";
 import { formatMessage, type Audience, type Person } from "./format";
-import { decide, draftFromAnswer, draftWithoutAnswer, whoMustRespond, type Autonomy, type Line } from "./respond";
+import {
+  classifyMemory,
+  decide,
+  draftFromAnswer,
+  draftWithoutAnswer,
+  whoMustRespond,
+  type Autonomy,
+  type Line,
+} from "./respond";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const RECENT = 20;
@@ -180,13 +188,18 @@ export async function respondWithAnswer(questionId: string) {
   if (!q || !q.answer) return;
 
   const channel = await loadChannel(q.channel_id);
-  const { error: memoryError } = await admin.from("memories").insert({
-    user_id: q.user_id,
-    organization_id: channel.organization_id,
-    scope: channel.audience === "internal" ? "internal" : "channel",
-    channel_id: channel.audience === "internal" ? null : channel.id,
-    content: `「${q.prompt}」への答え: ${q.answer}`,
-  });
+  const content = `「${q.prompt}」への答え: ${q.answer}`;
+  // 社外とのチャンネルで覚えたことは、そのチャンネル専用。社内で覚えたことは、
+  // 社外に伝わっても困らないものだけ、どの相手にも使ってよい記憶にする
+  const memory =
+    channel.audience === "external"
+      ? { scope: "channel", organization_id: channel.organization_id, channel_id: channel.id }
+      : (await classifyMemory({ question: q.prompt, answer: q.answer })) === "general"
+        ? { scope: "general", organization_id: null, channel_id: null }
+        : { scope: "internal", organization_id: channel.organization_id, channel_id: null };
+  const { error: memoryError } = await admin
+    .from("memories")
+    .insert({ user_id: q.user_id, content, ...memory });
   if (memoryError) throw memoryError;
 
   const draft = await draftFromAnswer({

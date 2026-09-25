@@ -100,9 +100,12 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   "原文" toggle becomes "あなたの AI が書きました" and shows the draft.
 - **Memory is saved with the scope of where it was learned.** Internal channels feed internal
   memory, used across the organisation's internal channels. A channel open to outsiders keeps
-  its own memory, used only there. `general` memory is used everywhere; for now only the
-  onboarding answers are general. Sorting learned answers into general needs a classifier and
-  is not built.
+  its own memory, used only there. `general` memory is used everywhere: the onboarding answers,
+  and answers given in internal channels that `classifyMemory` judges harmless for outsiders —
+  the person's own availability, role, reachability. Company matters, clients, money, people
+  decisions, and anything unclear stay internal. On 2026-09-26, over three runs of seven
+  samples, it never put anything sensitive in general; the only miss each time was "議事録は
+  自分がやる" filed as internal, which errs the safe way.
 - **Onboarding is four fixed multiple-choice questions** at `/welcome`, shown once before the
   first organisation screen: role, working hours, times bad for meetings, how they take
   requests. Nothing to personalise them with since Google data is out. The answers are

@@ -231,3 +231,24 @@ ${input.person}さんに聞いていたこと: ${input.question}`,
   if (!draft) throw new Error(`draft failed: ${response.stop_reason}`);
   return draft;
 }
+
+const Shareable = z.object({ scope: z.enum(["general", "internal"]), reason: z.string() });
+
+// 社内のチャンネルで本人が答えた内容を、社外の人とのやり取りでも使ってよいか振り分ける。
+// 迷ったら社内用。社外に漏れると困るものを general に入れる間違いのほうが重い
+export async function classifyMemory(input: { question: string; answer: string }) {
+  const response = await client.messages.parse({
+    model: MODEL,
+    max_tokens: 512,
+    output_config: { effort: "low", format: zodOutputFormat(Shareable) },
+    system: `あなたはチャットツール Smooo で、AI が覚えた内容の置き場所を決める係です。
+本人が社内のチャンネルで答えた内容を、社外の人とのやり取りでも使ってよいかを決めます。
+
+- general: 本人自身についての、社外に伝わっても困らないこと。空いている時間帯、担当している役割、
+  連絡のつきやすさなど
+- internal: 会社の案件、取引先、金額、社内の判断や人事、社内の予定、ほかの社員のこと。
+  迷うときもこちら`,
+    messages: [{ role: "user", content: `質問: ${input.question}\n答え: ${input.answer}` }],
+  });
+  return response.parsed_output?.scope ?? "internal";
+}
