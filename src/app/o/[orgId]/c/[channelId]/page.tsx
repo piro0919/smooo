@@ -7,6 +7,7 @@ import { LiveRefresh } from "@/components/LiveRefresh";
 import { MarkRead } from "@/components/MarkRead";
 import { InviteDialog } from "@/components/InviteDialog";
 import { MessageList } from "@/components/MessageList";
+import { loadMessages } from "@/lib/messages";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { joinChannel } from "../../actions";
@@ -44,46 +45,8 @@ export default async function ChannelPage({
         ?.profiles?.display_name ?? "?")
     : channel.name!;
 
-  // 新しい順に100件取り、古い順に並べ直す
-  const [{ data: latest }, { data: sources }, { data: reactions }] = isMember
-    ? await Promise.all([
-        supabase
-          .from("messages")
-          .select(
-            "id, body, created_at, author_id, corrects, profiles!messages_author_id_fkey(display_name, avatar_url), parent:reply_to(body, profiles!messages_author_id_fkey(display_name))",
-          )
-          .eq("channel_id", channelId)
-          .order("created_at", { ascending: false })
-          .limit(100),
-        supabase
-          .from("message_sources")
-          .select("message_id, raw_text, kind, messages!inner(channel_id)")
-          .eq("messages.channel_id", channelId),
-        supabase
-          .from("reactions")
-          .select("message_id, emoji, profiles(display_name)")
-          .eq("channel_id", channelId)
-          .order("created_at"),
-      ])
-    : [{ data: [] }, { data: [] }, { data: [] }];
-  const messages = (latest ?? []).reverse();
-  // 投稿ごとに、絵文字と付けた人の名前をまとめる
-  const reactionsById = new Map<string, Map<string, string[]>>();
-  for (const r of reactions ?? []) {
-    const byEmoji =
-      reactionsById.get(r.message_id) ?? new Map<string, string[]>();
-    byEmoji.set(r.emoji, [
-      ...(byEmoji.get(r.emoji) ?? []),
-      r.profiles?.display_name ?? "?",
-    ]);
-    reactionsById.set(r.message_id, byEmoji);
-  }
-  const rawById = new Map(
-    (sources ?? []).map((s) => [
-      s.message_id,
-      { text: s.raw_text, kind: s.kind },
-    ]),
-  );
+  const LATEST = 100;
+  const messages = isMember ? await loadMessages(supabase, channelId, { limit: LATEST }) : [];
 
   return (
     <>
@@ -125,12 +88,7 @@ export default async function ChannelPage({
           <LiveRefresh channelId={channelId} />
           <MarkRead orgId={orgId} channelId={channelId} latest={messages.at(-1)?.id} />
           <ComposerTargetProvider>
-            <MessageList
-              messages={messages}
-              sources={rawById}
-              reactions={reactionsById}
-              userId={auth.user!.id}
-            />
+            <MessageList channelId={channelId} messages={messages} hasOlder={messages.length === LATEST} userId={auth.user!.id} />
             <Composer
               orgId={orgId}
               channelId={channelId}

@@ -34,6 +34,7 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 | `supabase/tests/messages_test.sql` | Nobody can write a post directly, and only the author reads what they typed |
 | `src/app/o/[orgId]/` | The Slack-shaped screen: organisation rail, channel list, channel |
 | `src/app/o/[orgId]/c/[channelId]/actions.ts` | Posting: check membership, rewrite, then write with the secret key |
+| `src/lib/messages.ts` | Loads a page of posts with their reactions and the viewer's own drafts |
 | `src/lib/ai/respond.ts` | Who has to answer a post, whether their AI can answer or must ask, and drafting from an answer |
 | `src/lib/ai/pipeline.ts` | Runs the above after a post or an answer, and posts in the person's name |
 | `src/app/api/cron/deadlines/` | Every 5 minutes: answer for people who let a question expire. Guarded by `CRON_SECRET` |
@@ -78,6 +79,9 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   its primary key, so PostgREST also sees a many-to-many path, and a bare `profiles(...)` fails
   as ambiguous. It failed silently: the pipeline read "no message" and returned, and the channel
   showed no posts. Query errors in the pipeline now throw.
+- **A channel opens on its latest 100 posts.** "これより前の投稿を読み込む" at the top adds 50
+  older ones at a time. The list is stacked from the bottom (`flex-col-reverse`), so adding
+  above does not move what is on screen.
 - **Unread channels are bold in the sidebar, as in Slack.** `channel_reads` keeps when each
   person last had a channel open; `unread_channel_ids()` runs with the caller's rights, so it
   only counts posts they can see, and never their own — including posts their AI wrote. The

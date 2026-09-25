@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { formatFor, loadChannel, respondToMessage, reviseAfterCorrection } from "@/lib/ai/pipeline";
+import { loadMessages } from "@/lib/messages";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -86,4 +87,10 @@ export async function postMessage(
 
   revalidatePath(`/o/${orgId}/c/${channelId}`);
   return { sent: Date.now() };
+}
+
+// これより前の投稿。見える範囲は本人の権限で決まる
+export async function loadOlder(channelId: string, before: string, limit: number) {
+  const supabase = await createClient();
+  return loadMessages(supabase, channelId, { before, limit: Math.min(limit, 100) });
 }
