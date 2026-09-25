@@ -95,8 +95,15 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   plan, which launch assumes anyway. Locally, call the route with the secret from `.env.local`.
 - **AI drafts go through the same rewriting prompt as typed text.** The deciding model writes
   what the person would have typed, and `formatMessage` polishes it. One prompt to evaluate.
-- **AIs do not react to AI posts.** `messages.origin` is `human` or `ai`, and only `human` posts
-  set anything off. Without this two AIs can keep thanking each other forever.
+- **AIs answer AI posts, up to a depth of 3.** `messages.depth` is 0 for a human post and one
+  more than the post replied to for an AI post; nothing answers a post at depth 3. A holding
+  line like "確認して返します" never sets anything off. Without a limit two AIs keep thanking
+  each other.
+- **The deciding prompt says whose voice to use.** The first chained reply had 河村's AI repeat
+  佐藤's answer word for word — it wrote as the sender, not the receiver. The prompt now says
+  the post came from someone else and to move things forward from their answer, and a draft
+  that only repeats the post is dropped. Checked on 2026-09-26: "月曜と金曜どっちがいい？" →
+  佐藤's AI "金曜の午後で" → 河村's AI "では金曜の午後でお願いします".
 - **Nothing on screen says a post was written by an AI** — except to its author, where the
   "原文" toggle becomes "あなたの AI が書きました" and shows the draft.
 - **Memory is saved with the scope of where it was learned.** Internal channels feed internal

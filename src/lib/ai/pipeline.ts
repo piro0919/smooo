@@ -14,6 +14,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const RECENT = 20;
 
+// AI 同士の往復は、人間の投稿から数えてこの深さまで。それより深い投稿には誰も応じない
+const MAX_DEPTH = 3;
+
 type Channel = {
   id: string;
   name: string | null;
@@ -122,12 +125,33 @@ export async function formatFor(authorId: string, channel: Channel, raw: string)
 }
 
 // 本人の名前で投稿する。下書きを整形係に通してから出し、下書きは本人にだけ見える形で残す
-async function postAs(userId: string, channel: Channel, draft: string, replyTo: string) {
+// 答えを返したときは、その返事にさらに応じる人がいないかを見る（AI 同士の往復）。
+// 「確認して返します」のような一言は往復させない
+async function postAs(
+  userId: string,
+  channel: Channel,
+  draft: string,
+  replyTo: string,
+  { continues }: { continues: boolean },
+) {
   const admin = createAdminClient();
   const body = await formatFor(userId, channel, draft);
+  const { data: parent, error: parentError } = await admin
+    .from("messages")
+    .select("depth")
+    .eq("id", replyTo)
+    .single();
+  if (parentError) throw parentError;
   const { data: message, error } = await admin
     .from("messages")
-    .insert({ channel_id: channel.id, author_id: userId, body, reply_to: replyTo, origin: "ai" })
+    .insert({
+      channel_id: channel.id,
+      author_id: userId,
+      body,
+      reply_to: replyTo,
+      origin: "ai",
+      depth: parent.depth + 1,
+    })
     .select("id")
     .single();
   if (error) throw error;
@@ -135,22 +159,24 @@ async function postAs(userId: string, channel: Channel, draft: string, replyTo: 
     .from("message_sources")
     .insert({ message_id: message.id, author_id: userId, raw_text: draft, kind: "ai" });
   if (sourceError) throw sourceError;
+
+  if (continues) await respondToMessage(message.id);
 }
 
-// 人間の投稿が入ったら、返事を求められた人ごとに、その人の AI が答えるか本人に聞く。
-// AI の投稿には反応しない。AI 同士の往復が止まらなくなるのを防ぐため
+// 投稿が入ったら、返事を求められた人ごとに、その人の AI が答えるか本人に聞く。
+// AI の投稿にも応じるが、深さ MAX_DEPTH で止める。止めないと AI 同士がお礼を言い合い続ける
 export async function respondToMessage(messageId: string) {
   const admin = createAdminClient();
   const { data: message, error: messageError } = await admin
     .from("messages")
     .select(
-      "id, channel_id, author_id, body, origin, created_at, corrects, profiles!messages_author_id_fkey(display_name), parent:reply_to(body, profiles!messages_author_id_fkey(display_name))",
+      "id, channel_id, author_id, body, origin, depth, created_at, corrects, profiles!messages_author_id_fkey(display_name), parent:reply_to(body, profiles!messages_author_id_fkey(display_name))",
     )
     .eq("id", messageId)
     .single();
   // 問い合わせの失敗を「対象外」と取り違えない。あいまいな結合で黙って止まったことがある
   if (messageError) throw messageError;
-  if (message.origin !== "human") return;
+  if (message.depth >= MAX_DEPTH) return;
 
   const channel = await loadChannel(message.channel_id);
   const recent = await loadRecent(channel.id, message.created_at);
@@ -219,7 +245,13 @@ export async function respondToMessage(messageId: string) {
         if (error) throw error;
       }
       // 答えられるなら答えを、聞くなら「確認します」の一言を、本人の名前で返す
-      if (decision.draft.trim()) await postAs(user_id, channel, decision.draft, message.id);
+      // 相手の投稿をそのまま繰り返しただけの返事は出さない。立場を取り違えたときに起きた
+      const same = (a: string) => a.replace(/[\s。、！？!?]/g, "");
+      if (decision.draft.trim() && same(decision.draft) !== same(message.body)) {
+        await postAs(user_id, channel, decision.draft, message.id, {
+          continues: decision.action === "answer",
+        });
+      }
     }),
   );
 }
@@ -252,7 +284,7 @@ export async function respondWithAnswer(questionId: string) {
     question: q.prompt,
     answer: q.answer,
   });
-  await postAs(q.user_id, channel, draft, q.message_id);
+  await postAs(q.user_id, channel, draft, q.message_id, { continues: true });
 }
 
 // 期限を過ぎた質問に、本人の AI が代わりに返す。推測で返したことは記憶に残さない。
@@ -280,7 +312,7 @@ export async function answerOverdueQuestions() {
         question: q.prompt,
         memories: await loadMemories(q.user_id, channel),
       });
-      await postAs(q.user_id, channel, draft, q.message_id);
+      await postAs(q.user_id, channel, draft, q.message_id, { continues: true });
     }),
   );
 

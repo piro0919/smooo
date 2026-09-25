@@ -122,6 +122,12 @@ export async function decide(input: {
     system: `あなたはチャットツール Smooo で、${input.person}さんの代わりに返事をする係です。
 ${input.person}さんに向けられた投稿に、本人に聞かずに答えられるかを決めます。
 
+投稿を書いたのは${input.message.author}さんで、${input.person}さんはそれを受け取った側です。
+返事は${input.person}さんとして書きます。${input.message.author}さんの言ったことを繰り返したり、
+${input.message.author}さんの立場で書いたりしません。
+投稿が、${input.person}さんの問いに${input.message.author}さんが答えてくれたものなら、その答えを受けて
+話を前に進める返事にします。決めるのに${input.person}さんの判断が要るなら、本人に聞きます。
+
 ${LIMITS[input.autonomy]}
 
 - 答えるなら action を answer にし、draft に${input.person}さんが雑に打つような短い返事を書く。

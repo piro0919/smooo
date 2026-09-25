@@ -292,6 +292,7 @@ export type Database = {
           channel_id: string
           corrects: string | null
           created_at: string
+          depth: number
           id: string
           origin: string
           reply_to: string | null
@@ -302,6 +303,7 @@ export type Database = {
           channel_id: string
           corrects?: string | null
           created_at?: string
+          depth?: number
           id?: string
           origin?: string
           reply_to?: string | null
@@ -312,6 +314,7 @@ export type Database = {
           channel_id?: string
           corrects?: string | null
           created_at?: string
+          depth?: number
           id?: string
           origin?: string
           reply_to?: string | null
