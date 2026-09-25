@@ -3,6 +3,7 @@ import { Globe, Hash, UserPlus } from "lucide-react";
 import { Composer } from "@/components/Composer";
 import { ComposerTargetProvider } from "@/components/ComposerTarget";
 import { LiveRefresh } from "@/components/LiveRefresh";
+import { MarkRead } from "@/components/MarkRead";
 import { InviteDialog } from "@/components/InviteDialog";
 import { MessageList } from "@/components/MessageList";
 import { Button } from "@/components/ui/button";
@@ -117,6 +118,7 @@ export default async function ChannelPage({
       {isMember ? (
         <>
           <LiveRefresh channelId={channelId} />
+          <MarkRead orgId={orgId} channelId={channelId} latest={messages.at(-1)?.id} />
           <ComposerTargetProvider>
             <MessageList
               messages={messages}

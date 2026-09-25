@@ -57,3 +57,16 @@ export async function startDm(orgId: string, otherId: string) {
   revalidatePath(`/o/${orgId}`, "layout");
   redirect(`/o/${orgId}/c/${dm}`);
 }
+
+// 開いているチャンネルを既読にする。開いている間に届いた投稿も、画面に出た時点で既読にする
+export async function markRead(orgId: string, channelId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("channel_reads")
+    .upsert({ user_id: user.id, channel_id: channelId, last_read_at: new Date().toISOString() });
+  revalidatePath(`/o/${orgId}`, "layout");
+}

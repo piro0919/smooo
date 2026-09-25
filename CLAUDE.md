@@ -27,6 +27,7 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 | `supabase/migrations/` | Organisations, profiles, memberships, channels, channel members, and who can see what |
 | `supabase/tests/rls_test.sql` | pgTAP tests for the above. Outsiders must never reach an internal channel |
 | `src/proxy.ts` | Refreshes the Supabase session on every request and sends signed-out people to `/login` |
+| `supabase/tests/reads_test.sql` | Unread counts only other people's posts and clears on opening |
 | `supabase/tests/dms_test.sql` | A DM is invisible to everyone but its two people; one DM per pair |
 | `supabase/tests/invites_test.sql` | Invites: none for internal channels, expired links refused, outsiders land in one channel only |
 | `src/app/join/[token]/` | Where an invite link lands. Signed-out people go through `/login` and come back |
@@ -77,6 +78,11 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   its primary key, so PostgREST also sees a many-to-many path, and a bare `profiles(...)` fails
   as ambiguous. It failed silently: the pipeline read "no message" and returned, and the channel
   showed no posts. Query errors in the pipeline now throw.
+- **Unread channels are bold in the sidebar, as in Slack.** `channel_reads` keeps when each
+  person last had a channel open; `unread_channel_ids()` runs with the caller's rights, so it
+  only counts posts they can see, and never their own — including posts their AI wrote. The
+  open channel is marked read whenever its newest post changes. The sidebar refreshes on any
+  visible new post.
 - **Realtime needs the access token before subscribing.** Without `realtime.setAuth`, the
   socket joins as anonymous, the subscription reports success, and row level security
   silently drops every event.

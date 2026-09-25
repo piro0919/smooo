@@ -67,6 +67,39 @@ export type Database = {
           },
         ]
       }
+      channel_reads: {
+        Row: {
+          channel_id: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_reads_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channels: {
         Row: {
           audience: string
@@ -522,6 +555,7 @@ export type Database = {
       }
       create_dm: { Args: { org: string; other: string }; Returns: string }
       create_organization: { Args: { name: string }; Returns: string }
+      unread_channel_ids: { Args: never; Returns: string[] }
     }
     Enums: {
       [_ in never]: never

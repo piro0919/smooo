@@ -6,7 +6,7 @@ import { BrowseChannelsDialog } from "@/components/BrowseChannelsDialog";
 import { CreateChannelDialog } from "@/components/CreateChannelDialog";
 import { CreateOrgDialog } from "@/components/CreateOrgDialog";
 import { InviteDialog } from "@/components/InviteDialog";
-import { LiveQuestions } from "@/components/LiveQuestions";
+import { LiveSidebar } from "@/components/LiveSidebar";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { StartDmDialog } from "@/components/StartDmDialog";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
     { data: me },
     { data: dms },
     { data: orgPeople },
+    { data: unreadIds },
   ] = await Promise.all([
     supabase
       .from("memberships")
@@ -64,7 +65,11 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
       .select("user_id, profiles(display_name)")
       .eq("organization_id", orgId)
       .neq("user_id", userId),
+    supabase.rpc("unread_channel_ids"),
   ]);
+  const unread = new Set(unreadIds ?? []);
+  // 未読のあるチャンネルは、Slack と同じく名前を太字にする
+  const itemFor = (id: string) => cn(itemClass, unread.has(id) && "font-bold text-white");
 
   // 使い始めの数問がまだなら、先にそちらへ
   if (me && !me.onboarded_at) redirect(`/welcome?next=/o/${orgId}`);
@@ -124,7 +129,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
           </InviteDialog>
         </header>
         <div className="flex-1 overflow-y-auto py-3">
-          <LiveQuestions userId={userId} />
+          <LiveSidebar userId={userId} />
           <div className="px-2 pb-3">
             <Link href={`/o/${orgId}/questions`} className={itemClass}>
               <MessageCircleQuestion className="size-4 shrink-0" />
@@ -140,7 +145,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
           <ul className="grid px-2">
             {joined.map((c) => (
               <li key={c.id}>
-                <Link href={`/o/${orgId}/c/${c.id}`} className={itemClass}>
+                <Link href={`/o/${orgId}/c/${c.id}`} className={itemFor(c.id)}>
                   {c.audience === "external" ? (
                     <Globe className="size-4 shrink-0" aria-label="社外の人も入れる" />
                   ) : (
@@ -161,7 +166,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
           <ul className="grid px-2">
             {dmList.map((d) => (
               <li key={d.id}>
-                <Link href={`/o/${orgId}/c/${d.id}`} className={itemClass}>
+                <Link href={`/o/${orgId}/c/${d.id}`} className={itemFor(d.id)}>
                   <span className="flex size-4 shrink-0 items-center justify-center rounded-sm bg-white/20 text-[10px] font-bold">
                     {d.name.slice(0, 1)}
                   </span>
@@ -179,7 +184,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
               <ul className="grid px-2">
                 {guestChannels.map((c) => (
                   <li key={c.id}>
-                    <Link href={`/o/${orgId}/c/${c.id}`} className={itemClass}>
+                    <Link href={`/o/${orgId}/c/${c.id}`} className={itemFor(c.id)}>
                       <Globe className="size-4 shrink-0" />
                       <span className="truncate">{c.name}</span>
                       <span className="ml-auto truncate text-xs opacity-70">{c.organizations?.name}</span>

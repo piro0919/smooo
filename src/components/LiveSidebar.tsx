@@ -4,8 +4,9 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-// 自分への質問が増えたら画面を取り直す。サイドバーの件数もこれで変わる
-export function LiveQuestions({ userId }: { userId: string }) {
+// 自分への質問か、どこかのチャンネルへの投稿が増えたら画面を取り直す。
+// サイドバーの質問の件数と、未読の太字がこれで変わる。見えない投稿は RLS で届かない
+export function LiveSidebar({ userId }: { userId: string }) {
   const router = useRouter();
 
   useEffect(() => {
@@ -17,11 +18,14 @@ export function LiveQuestions({ userId }: { userId: string }) {
       if (cancelled || !session) return;
       supabase.realtime.setAuth(session.access_token);
       subscription = supabase
-        .channel(`questions:${userId}`)
+        .channel(`sidebar:${userId}`)
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "questions", filter: `user_id=eq.${userId}` },
           () => router.refresh(),
+        )
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () =>
+          router.refresh(),
         )
         .subscribe();
     });
