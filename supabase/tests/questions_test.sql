@@ -2,7 +2,7 @@
 -- 「覚えたことは画面に出さない」が崩れ、他人の答えが漏れる
 begin;
 create extension if not exists pgtap;
-select plan(5);
+select plan(7);
 
 insert into auth.users (id, email) values
   ('aaaaaaaa-0000-0000-0000-0000000000f1', 'q-a@example.test'),
@@ -23,6 +23,16 @@ insert into questions (user_id, message_id, channel_id, prompt, options, deadlin
    'c0000000-0000-0000-0000-0000000000f0', '来週の水曜は空いていますか', '["空いている", "空いていない"]', now() + interval '1 day');
 insert into memories (user_id, organization_id, scope, content) values
   ('bbbbbbbb-0000-0000-0000-0000000000f2', '0e000000-0000-0000-0000-0000000000f0', 'internal', '水曜の午後は外出が多い');
+
+select lives_ok(
+  $$ insert into memories (user_id, scope, content) values
+     ('bbbbbbbb-0000-0000-0000-0000000000f2', 'general', 'ふだん働いている時間: 平日 9時〜18時') $$,
+  'どの相手にも使ってよい記憶は、Organization を持たない');
+
+select throws_ok(
+  $$ insert into memories (user_id, organization_id, scope, content) values
+     ('bbbbbbbb-0000-0000-0000-0000000000f2', '0e000000-0000-0000-0000-0000000000f0', 'general', 'x') $$,
+  '23514', null, 'どの相手にも使ってよい記憶を、特定の Organization に結びつけられない');
 
 set local role authenticated;
 

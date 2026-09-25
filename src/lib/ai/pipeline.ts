@@ -32,15 +32,21 @@ async function loadRecent(channelId: string, before: string): Promise<Line[]> {
 }
 
 // その人が、このチャンネルで使ってよい記憶。社内で覚えたものは社内のチャンネルでだけ使い、
-// 社外も入るチャンネルで覚えたものは、そのチャンネルでだけ使う
+// 社外も入るチャンネルで覚えたものは、そのチャンネルでだけ使う。general はどこでも使う
 async function loadMemories(userId: string, channel: Channel) {
   const admin = createAdminClient();
-  let query = admin.from("memories").select("content").eq("user_id", userId);
-  query =
+  const here =
     channel.audience === "internal"
-      ? query.eq("organization_id", channel.organization_id).eq("scope", "internal")
-      : query.eq("scope", "channel").eq("channel_id", channel.id);
-  const { data } = await query.order("created_at").limit(200);
+      ? `and(scope.eq.internal,organization_id.eq.${channel.organization_id})`
+      : `and(scope.eq.channel,channel_id.eq.${channel.id})`;
+  const { data, error } = await admin
+    .from("memories")
+    .select("content")
+    .eq("user_id", userId)
+    .or(`scope.eq.general,${here}`)
+    .order("created_at")
+    .limit(200);
+  if (error) throw error;
   return (data ?? []).map((m) => m.content);
 }
 

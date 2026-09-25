@@ -200,7 +200,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
-          organization_id: string
+          organization_id: string | null
           scope: string
           user_id: string
         }
@@ -209,7 +209,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
-          organization_id: string
+          organization_id?: string | null
           scope: string
           user_id: string
         }
@@ -218,7 +218,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
-          organization_id?: string
+          organization_id?: string | null
           scope?: string
           user_id?: string
         }
@@ -362,6 +362,7 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          onboarded_at: string | null
         }
         Insert: {
           autonomy?: string
@@ -369,6 +370,7 @@ export type Database = {
           created_at?: string
           display_name: string
           id: string
+          onboarded_at?: string | null
         }
         Update: {
           autonomy?: string
@@ -376,6 +378,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+          onboarded_at?: string | null
         }
         Relationships: []
       }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Globe, Hash, MessageCircleQuestion, UserPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { BrowseChannelsDialog } from "@/components/BrowseChannelsDialog";
@@ -47,8 +47,11 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
       .neq("organization_id", orgId)
       .order("name"),
     supabase.from("questions").select("id", { count: "exact", head: true }).eq("status", "open"),
-    supabase.from("profiles").select("autonomy").eq("id", userId).single(),
+    supabase.from("profiles").select("autonomy, onboarded_at").eq("id", userId).single(),
   ]);
+
+  // 使い始めの数問がまだなら、先にそちらへ
+  if (me && !me.onboarded_at) redirect(`/welcome?next=/o/${orgId}`);
 
   const orgs = (memberships ?? []).flatMap((m) => (m.organizations ? [m.organizations] : []));
   const org = orgs.find((o) => o.id === orgId);

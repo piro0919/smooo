@@ -100,8 +100,15 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   "原文" toggle becomes "あなたの AI が書きました" and shows the draft.
 - **Memory is saved with the scope of where it was learned.** Internal channels feed internal
   memory, used across the organisation's internal channels. A channel open to outsiders keeps
-  its own memory, used only there. General "fine to tell anyone" memory needs a classifier and
+  its own memory, used only there. `general` memory is used everywhere; for now only the
+  onboarding answers are general. Sorting learned answers into general needs a classifier and
   is not built.
+- **Onboarding is four fixed multiple-choice questions** at `/welcome`, shown once before the
+  first organisation screen: role, working hours, times bad for meetings, how they take
+  requests. Nothing to personalise them with since Google data is out. The answers are
+  `general` memory, so the questions stay to things fine for outsiders to hear. Checked on
+  2026-09-26: in a channel with outsiders, "何時まで仕事してる？" was answered from the
+  working-hours answer without asking.
 - **Everyone gets a personal organisation at sign-up.** A company organisation is created from
   the `+` on the rail, or joined through an invite link.
 - **Two kinds of invite link, both valid for seven days.** One makes you a member of the
