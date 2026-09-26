@@ -34,6 +34,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_typing: {
+        Row: {
+          channel_id: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_typing_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_typing_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_members: {
         Row: {
           channel_id: string

@@ -121,6 +121,10 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   exists to remove. Six runs on three samples: five right, one needless reply.
 - **Questions from your AI show up under the post that caused them,** visible only to you, with
   the same one-tap answers as "あなたへの質問".
+- **"佐藤さんの AI が返事を考えています…" shows while an AI prepares a reply,** from `ai_typing`
+  rows that exist only for that span and are cleared even on failure; rows older than two
+  minutes are ignored. It appears once the respondents are picked, about six seconds after
+  sending. A follow-on AI reply starts only after the first indicator clears.
 - **The deciding prompt says whose voice to use.** The first chained reply had 河村's AI repeat
   佐藤's answer word for word — it wrote as the sender, not the receiver. The prompt now says
   the post came from someone else and to move things forward from their answer, and a draft

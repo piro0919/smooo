@@ -160,7 +160,21 @@ async function postAs(
     .insert({ message_id: message.id, author_id: userId, raw_text: draft, kind: "ai" });
   if (sourceError) throw sourceError;
 
-  if (continues) await respondToMessage(message.id);
+  // 続きは呼んだ側が、「考えています」を消してから動かす
+  return continues ? message.id : null;
+}
+
+// その人の AI が返事を用意している間、「考えています」を出す。終わったら、失敗しても消す
+async function whileTyping<T>(channelId: string, userId: string, work: () => Promise<T>) {
+  const admin = createAdminClient();
+  await admin
+    .from("ai_typing")
+    .upsert({ channel_id: channelId, user_id: userId, started_at: new Date().toISOString() });
+  try {
+    return await work();
+  } finally {
+    await admin.from("ai_typing").delete().eq("channel_id", channelId).eq("user_id", userId);
+  }
 }
 
 // 投稿が入ったら、返事を求められた人ごとに、その人の AI が答えるか本人に聞く。
@@ -220,8 +234,8 @@ export async function respondToMessage(messageId: string) {
     if (error) throw error;
   }
 
-  await Promise.all(
-    respondents.map(async ({ user_id }) => {
+  const followUps = await Promise.all(
+    respondents.map(({ user_id }) => whileTyping(channel.id, user_id, async (): Promise<string | null> => {
       const { name: person, autonomy } = people.find((p) => p.user_id === user_id)!;
       const decision = await decide({
         autonomy,
@@ -247,16 +261,22 @@ export async function respondToMessage(messageId: string) {
         // 確認しに行ったことを決まった一言で返す。AI に整えさせると
         // 「確認して返送いたします」のように崩れることがあり、毎回ほぼ同じ文なので呼び出しも要らない
         const holding = channel.audience === "external" ? "確認のうえ、ご返信いたします。" : "確認して返信します。";
-        await postAs(user_id, channel, "確認して返します", message.id, { continues: false, formatted: holding });
-        return;
+        return postAs(user_id, channel, "確認して返します", message.id, { continues: false, formatted: holding });
       }
       // 相手の投稿をそのまま繰り返しただけの返事は出さない。立場を取り違えたときに起きた
       const same = (a: string) => a.replace(/[\s。、！？!?]/g, "");
       if (decision.draft.trim() && same(decision.draft) !== same(message.body)) {
-        await postAs(user_id, channel, decision.draft, message.id, { continues: true });
+        return postAs(user_id, channel, decision.draft, message.id, { continues: true });
       }
-    }),
+      return null;
+    })),
   );
+  await continueFrom(followUps);
+}
+
+// AI の返事に、さらに応じる人がいないかを見る
+async function continueFrom(ids: (string | null)[]) {
+  for (const id of ids) if (id) await respondToMessage(id);
 }
 
 // 本人が質問に答えたら、答えを覚え、その答えで返事をする
@@ -268,26 +288,30 @@ export async function respondWithAnswer(questionId: string) {
     .eq("id", questionId)
     .single();
   if (!q || !q.answer) return;
+  const answer = q.answer;
 
   const channel = await loadChannel(q.channel_id);
-  const content = `「${q.prompt}」への答え: ${q.answer}`;
-  const memory = await memoryScopeFor(channel, q.prompt, q.answer);
+  const content = `「${q.prompt}」への答え: ${answer}`;
+  const memory = await memoryScopeFor(channel, q.prompt, answer);
   const { error: memoryError } = await admin
     .from("memories")
     .insert({ user_id: q.user_id, content, ...memory });
   if (memoryError) throw memoryError;
 
-  const draft = await draftFromAnswer({
-    person: q.profiles?.display_name ?? "?",
-    channel: channel.label,
-    message: {
-      author: q.messages?.profiles?.display_name ?? "?",
-      body: q.messages?.body ?? "",
-    },
-    question: q.prompt,
-    answer: q.answer,
+  const next = await whileTyping(channel.id, q.user_id, async () => {
+    const draft = await draftFromAnswer({
+      person: q.profiles?.display_name ?? "?",
+      channel: channel.label,
+      message: {
+        author: q.messages?.profiles?.display_name ?? "?",
+        body: q.messages?.body ?? "",
+      },
+      question: q.prompt,
+      answer,
+    });
+    return postAs(q.user_id, channel, draft, q.message_id, { continues: true });
   });
-  await postAs(q.user_id, channel, draft, q.message_id, { continues: true });
+  await continueFrom([next]);
 }
 
 // 期限を過ぎた質問に、本人の AI が代わりに返す。推測で返したことは記憶に残さない。
@@ -315,7 +339,7 @@ export async function answerOverdueQuestions() {
         question: q.prompt,
         memories: await loadMemories(q.user_id, channel),
       });
-      await postAs(q.user_id, channel, draft, q.message_id, { continues: true });
+      await continueFrom([await postAs(q.user_id, channel, draft, q.message_id, { continues: true })]);
     }),
   );
 

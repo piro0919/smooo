@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Globe, Hash, UserPlus } from "lucide-react";
+import { AiTyping } from "@/components/AiTyping";
 import { BackToList } from "@/components/BackToList";
 import { Composer } from "@/components/Composer";
 import { ComposerTargetProvider } from "@/components/ComposerTarget";
@@ -89,6 +90,7 @@ export default async function ChannelPage({
           <MarkRead orgId={orgId} channelId={channelId} latest={messages.at(-1)?.id} />
           <ComposerTargetProvider>
             <MessageList channelId={channelId} messages={messages} hasOlder={messages.length === LATEST} userId={auth.user!.id} orgId={orgId} />
+            <AiTyping channelId={channelId} userId={auth.user!.id} />
             <Composer
               orgId={orgId}
               channelId={channelId}
