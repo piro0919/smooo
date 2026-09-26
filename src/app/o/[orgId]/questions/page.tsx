@@ -29,13 +29,13 @@ export default async function QuestionsPage({ params }: PageProps<"/o/[orgId]/qu
       </header>
       <div className="flex-1 overflow-y-auto p-5">
         {!questions?.length ? (
-          <p className="text-muted-foreground">いま答える質問はありません。</p>
+          <p className="text-muted-foreground">答える質問はありません。</p>
         ) : (
           <ul className="grid gap-4">
             {questions.map((q) => (
               <li key={q.id} className="grid gap-3 rounded-lg border p-4">
                 <p className="text-sm text-muted-foreground">
-                  #{q.channels?.name} ・ {when.format(new Date(q.deadline))} までに答えないと、AI が代わりに返します
+                  #{q.channels?.name} ・ {when.format(new Date(q.deadline))} までに答えないと、AI が代わりに返事をします
                 </p>
                 <blockquote className="border-l-4 pl-3 text-sm">
                   <span className="font-bold">{q.messages?.profiles?.display_name}</span>

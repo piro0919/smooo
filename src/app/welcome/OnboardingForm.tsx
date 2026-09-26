@@ -35,7 +35,7 @@ export function OnboardingForm({ next }: { next: string }) {
       <div className="flex items-center gap-3">
         <Button type="submit">はじめる</Button>
         <Button type="submit" name="skip" value="1" variant="ghost">
-          あとで
+          あとで答える
         </Button>
       </div>
     </form>

@@ -18,7 +18,7 @@ export function MessageList({
   if (messages.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center p-8 text-center text-muted-foreground">
-        まだ投稿はありません。
+        まだメッセージはありません。
       </div>
     );
   }

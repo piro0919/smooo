@@ -42,7 +42,7 @@ export function OlderMessages({
               })
             }
           >
-            {pending ? "読み込んでいます…" : "これより前の投稿を読み込む"}
+            {pending ? "読み込んでいます…" : "これより前のメッセージを読み込む"}
           </button>
         </li>
       )}

@@ -11,7 +11,7 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
       <div className="grid gap-2">
         <h1 className="text-2xl font-bold">はじめに</h1>
         <p className="text-muted-foreground">
-          あなたの AI が最初に覚えることです。ここで答えておくと、あとで AI からの質問が減ります。
+          あなたの AI が最初に覚えることです。答えておくと、AI からあなたへの質問が減ります。
           答えは、社外の人とのやり取りでも使われます。
         </p>
       </div>

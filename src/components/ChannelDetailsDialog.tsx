@@ -39,7 +39,7 @@ export function ChannelDetailsDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>参加者 {members.length}人</DialogDescription>
+          <DialogDescription>メンバー {members.length}人</DialogDescription>
         </DialogHeader>
         <ul className="grid max-h-80 gap-1 overflow-y-auto">
           {members.map((m) => (
@@ -53,7 +53,7 @@ export function ChannelDetailsDialog({
         {canLeave && (
           <form action={leaveChannel.bind(null, orgId, channelId)} className="border-t pt-4">
             <Button type="submit" variant="outline" className="w-full">
-              このチャンネルから抜ける
+              チャンネルから退出する
             </Button>
           </form>
         )}

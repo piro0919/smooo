@@ -20,13 +20,13 @@ export async function postMessage(
 ): Promise<PostState> {
   const raw = String(formData.get("raw") ?? "").trim();
   if (!raw) return {};
-  if (raw.length > 4000) return { error: "長すぎます。4000文字までです。", raw };
+  if (raw.length > 4000) return { error: "4000文字以内で入力してください。", raw };
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "ログインが切れています。", raw };
+  if (!user) return { error: "ログインの有効期限が切れました。もう一度ログインしてください。", raw };
 
   // 参加しているチャンネルかを、本人の権限で確かめる。見えなければ参加していない
   const { data: channel } = await supabase
@@ -35,7 +35,7 @@ export async function postMessage(
     .eq("id", channelId)
     .eq("channel_members.user_id", user.id)
     .maybeSingle();
-  if (!channel) return { error: "このチャンネルには投稿できません。", raw };
+  if (!channel) return { error: "このチャンネルにはメッセージを送信できません。", raw };
 
   // 返信先と訂正先は、同じチャンネルの投稿に限る。訂正できるのは自分の名前の投稿だけ
   const replyTo = String(formData.get("reply_to") ?? "") || null;
@@ -47,14 +47,14 @@ export async function postMessage(
       .select("author_id, channel_id")
       .eq("id", target)
       .maybeSingle();
-    if (!parent || parent.channel_id !== channelId) return { error: "返信先の投稿が見つかりません。", raw };
-    if (corrects && parent.author_id !== user.id) return { error: "訂正できるのは自分の投稿だけです。", raw };
+    if (!parent || parent.channel_id !== channelId) return { error: "返信先のメッセージが見つかりません。", raw };
+    if (corrects && parent.author_id !== user.id) return { error: "訂正できるのは自分のメッセージだけです。", raw };
   }
 
   // 上限に達していたら、AI を呼ぶ前に止める
   const cap = await capFor(user.id, channelId);
   if (cap.over) {
-    return { error: `今月の投稿数の上限（${cap.cap}件）に達しました。来月1日から、また投稿できます。`, raw };
+    return { error: `今月のメッセージ数が上限の${cap.cap}件に達しました。来月1日から、また送信できます。`, raw };
   }
 
   let body: string;
@@ -62,7 +62,7 @@ export async function postMessage(
     body = await formatFor(user.id, await loadChannel(channelId), raw);
   } catch (error) {
     console.error(error);
-    return { error: "文面を整えられませんでした。もう一度送ってください。", raw };
+    return { error: "AI が文面を作成できませんでした。もう一度送信してください。", raw };
   }
 
   const admin = createAdminClient();
@@ -71,7 +71,7 @@ export async function postMessage(
     .insert({ channel_id: channelId, author_id: user.id, body, reply_to: target, corrects, billed_org_id: cap.orgId })
     .select("id")
     .single();
-  if (error) return { error: "投稿できませんでした。", raw };
+  if (error) return { error: "送信できませんでした。", raw };
 
   const { error: sourceError } = await admin
     .from("message_sources")
@@ -79,7 +79,7 @@ export async function postMessage(
   if (sourceError) {
     // 原文が残らない投稿は、本人が後から確かめられないので出さない
     await admin.from("messages").delete().eq("id", message.id);
-    return { error: "投稿できませんでした。", raw };
+    return { error: "送信できませんでした。", raw };
   }
 
   // 返事を求められた人の AI が、答えるか本人に聞く。投稿した人を待たせないよう後で動かす

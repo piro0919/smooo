@@ -39,11 +39,11 @@ export function CreateChannelDialog({ orgId }: { orgId: string }) {
           <DialogHeader>
             <DialogTitle>チャンネルを作成する</DialogTitle>
             <DialogDescription>
-              社内だけのチャンネルには、この Organization の人しか入れません。
+              社内だけのチャンネルには、このワークスペースのメンバーしか参加できません。
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
-            <Label htmlFor="channel-name">名前</Label>
+            <Label htmlFor="channel-name">チャンネル名</Label>
             <Input id="channel-name" name="name" placeholder="例: 企画-2026" required autoFocus />
           </div>
           <div className="grid gap-2">
@@ -51,11 +51,11 @@ export function CreateChannelDialog({ orgId }: { orgId: string }) {
             <RadioGroup name="audience" defaultValue="internal">
               <Label className="flex items-center gap-2 font-normal">
                 <RadioGroupItem value="internal" />
-                社内だけ
+                社内のメンバーだけ
               </Label>
               <Label className="flex items-center gap-2 font-normal">
                 <RadioGroupItem value="external" />
-                社外の人も入れる
+                社外の人も参加できる
               </Label>
             </RadioGroup>
           </div>

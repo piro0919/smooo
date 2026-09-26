@@ -134,8 +134,8 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
           <MembersDialog orgId={orgId} orgName={org.name} personal={org.personal} members={members} />
           <InviteDialog
             orgId={orgId}
-            title={`${org.name} に招待する`}
-            description="このリンクから入った人は、この Organization の一員になり、社内だけのチャンネルにも入れます。"
+            title={`${org.name} にメンバーを招待する`}
+            description={`このリンクから参加した人は ${org.name} のメンバーになり、社内だけのチャンネルにも参加できます。`}
             trigger={
               <button
                 aria-label="メンバーを招待する"
@@ -166,7 +166,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
               <li key={c.id}>
                 <Link href={`/o/${orgId}/c/${c.id}`} className={itemFor(c.id)}>
                   {c.audience === "external" ? (
-                    <Globe className="size-4 shrink-0" aria-label="社外の人も入れる" />
+                    <Globe className="size-4 shrink-0" aria-label="社外の人も参加できるチャンネル" />
                   ) : (
                     <Hash className="size-4 shrink-0" />
                   )}
@@ -221,7 +221,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
                 usage.used >= usage.cap * 0.9 && "font-bold text-[#ecb22e] opacity-100",
               )}
             >
-              今月の投稿 {usage.used.toLocaleString("ja-JP")} / {usage.cap.toLocaleString("ja-JP")} 件
+              今月のメッセージ {usage.used.toLocaleString("ja-JP")} / {usage.cap.toLocaleString("ja-JP")} 件
             </p>
           )}
           <SettingsDialog

@@ -230,8 +230,12 @@ answer, but asking is arguably right; it was left as written rather than changed
 
 ### Screens
 
-- **Slack is the reference for every screen.** Rail, purple sidebar, square avatars, bold
-  unread channels, hover actions on posts.
+- **Slack is the reference for every screen, including its Japanese wording.** Rail, purple
+  sidebar, square avatars, bold unread channels, hover actions on posts. On screen an
+  organisation is ワークスペース, its owner オーナー, a post メッセージ; channels are 作成する,
+  参加する, 退出する, and browsed in チャンネル一覧 — Slack's own Japanese terms, checked in its help
+  centre on 2026-09-26. Code and tables keep `organization`, `messages`. The first pass had
+  English (Organization, owner) and made-up verbs (抜ける, チャンネルを探す) on screen.
 - **Posts are never edited.** A correction is a new post with `corrects` pointing at the
   original, shown with a 訂正 label and a quote. Only the person answerable for a post can
   correct it, including posts their AI wrote. Hover a post for 返信, and 訂正 on your own.

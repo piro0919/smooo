@@ -11,11 +11,11 @@ export async function createOrganization(
   formData: FormData,
 ): Promise<CreateOrgState> {
   const name = String(formData.get("name") ?? "").trim();
-  if (!name || name.length > 80) return { error: "名前は1〜80文字で入れてください。" };
+  if (!name || name.length > 80) return { error: "名前は1〜80文字で入力してください。" };
 
   const supabase = await createClient();
   const { data: orgId, error } = await supabase.rpc("create_organization", { name });
-  if (error || !orgId) return { error: "作れませんでした。" };
+  if (error || !orgId) return { error: "ワークスペースを作成できませんでした。" };
 
   redirect(`/o/${orgId}`);
 }
@@ -33,7 +33,7 @@ export async function createInvite(
     .insert({ organization_id: orgId, channel_id: channelId })
     .select("token")
     .single();
-  if (error) return { error: "招待のリンクを作れませんでした。" };
+  if (error) return { error: "招待リンクを作成できませんでした。" };
 
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");

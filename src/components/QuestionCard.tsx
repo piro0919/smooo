@@ -37,7 +37,7 @@ export function QuestionCard({
         <div className="flex gap-2">
           <Input name="answer" placeholder="答えを入力" autoFocus disabled={pending} />
           <Button type="submit" disabled={pending}>
-            送る
+            送信
           </Button>
         </div>
       )}

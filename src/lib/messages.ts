@@ -76,7 +76,7 @@ export async function loadMessages(
     created_at: m.created_at,
     author_id: m.author_id,
     corrects: m.corrects,
-    author: m.profiles?.display_name ?? "（不明）",
+    author: m.profiles?.display_name ?? "不明なユーザー",
     avatarUrl: m.profiles?.avatar_url ?? null,
     parent: m.parent ? { author: m.parent.profiles?.display_name ?? "?", body: m.parent.body } : null,
     source: sourceById.get(m.id) ?? null,

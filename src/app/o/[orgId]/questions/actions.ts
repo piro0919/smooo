@@ -25,7 +25,7 @@ export async function answerQuestion(
     .eq("id", questionId)
     .maybeSingle();
   if (!question) return { error: "この質問には答えられません。" };
-  if (question.status !== "open") return { error: "この質問はもう締め切られています。" };
+  if (question.status !== "open") return { error: "この質問は締め切られました。" };
 
   const admin = createAdminClient();
   const { error } = await admin
@@ -33,7 +33,7 @@ export async function answerQuestion(
     .update({ status: "answered", answer, answered_at: new Date().toISOString() })
     .eq("id", questionId)
     .eq("status", "open");
-  if (error) return { error: "答えを送れませんでした。" };
+  if (error) return { error: "答えを送信できませんでした。" };
 
   after(async () => {
     try {

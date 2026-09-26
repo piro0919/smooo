@@ -24,12 +24,12 @@ export function BrowseChannelsDialog({ orgId, channels }: { orgId: string; chann
         }
       >
         <Search className="size-4" />
-        チャンネルを探す
+        チャンネル一覧
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>チャンネルを探す</DialogTitle>
-          <DialogDescription>この Organization の、まだ参加していないチャンネルです。</DialogDescription>
+          <DialogTitle>チャンネル一覧</DialogTitle>
+          <DialogDescription>このワークスペースで、まだ参加していないチャンネルです。</DialogDescription>
         </DialogHeader>
         {channels.length === 0 ? (
           <p className="text-sm text-muted-foreground">参加していないチャンネルはありません。</p>

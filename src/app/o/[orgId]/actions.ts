@@ -20,7 +20,7 @@ export async function createChannel(
   const audience = formData.get("audience") === "external" ? "external" : "internal";
 
   if (!/^[a-z0-9ぁ-んァ-ヶー一-龯_-]{1,80}$/.test(name)) {
-    return { error: "名前には、小文字の英字、数字、日本語、ハイフン、アンダースコアが使えます。" };
+    return { error: "チャンネル名に使えるのは、小文字の英字、数字、日本語、ハイフン、アンダースコアです。" };
   }
 
   const supabase = await createClient();
@@ -32,7 +32,7 @@ export async function createChannel(
 
   if (error) {
     if (error.code === "23505") return { error: "同じ名前のチャンネルがすでにあります。" };
-    return { error: "チャンネルを作れませんでした。" };
+    return { error: "チャンネルを作成できませんでした。" };
   }
 
   revalidatePath(`/o/${orgId}`, "layout");
@@ -78,9 +78,9 @@ export async function leaveOrganization(orgId: string): Promise<LeaveState> {
   const { error } = await supabase.rpc("leave_organization", { org: orgId });
   if (error) {
     if (error.message.includes("last owner")) {
-      return { error: "あなたしか owner がいないため、抜けられません。" };
+      return { error: "オーナーがあなただけのため、退出できません。" };
     }
-    return { error: "抜けられませんでした。" };
+    return { error: "退出できませんでした。" };
   }
   redirect("/");
 }

@@ -21,15 +21,15 @@ export function StartDmDialog({ orgId, people }: { orgId: string; people: { id: 
         }
       >
         <Plus className="size-4" />
-        DM を始める
+        DM を送る
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>DM を始める</DialogTitle>
-          <DialogDescription>この Organization の人と、2人だけでやり取りします。</DialogDescription>
+          <DialogTitle>DM を送る</DialogTitle>
+          <DialogDescription>このワークスペースのメンバーと、2人だけでやり取りします。</DialogDescription>
         </DialogHeader>
         {people.length === 0 ? (
-          <p className="text-sm text-muted-foreground">この Organization には、まだほかの人がいません。</p>
+          <p className="text-sm text-muted-foreground">このワークスペースには、まだほかのメンバーがいません。</p>
         ) : (
           <ul className="grid gap-1">
             {people.map((p) => (

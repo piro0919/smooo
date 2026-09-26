@@ -93,7 +93,7 @@ export default async function ChannelPage({
                 orgId={orgId}
                 channelId={channelId}
                 title="社外の人を招待する"
-                description={`このリンクから入った人は、#${channel.name} にだけ参加します。ほかのチャンネルや社内の人の一覧は見えません。`}
+                description={`このリンクから参加した人は、#${channel.name} だけに参加します。ほかのチャンネルや社内のメンバー一覧は見えません。`}
                 trigger={
                   <button
                     aria-label="社外の人を招待"
@@ -118,7 +118,7 @@ export default async function ChannelPage({
             <Composer
               orgId={orgId}
               channelId={channelId}
-              placeholder={isDm ? `${title}さんへ` : `#${title} へ`}
+              placeholder={isDm ? `${title}さんへのメッセージ` : `#${title} へのメッセージ`}
             />
           </ComposerTargetProvider>
         </>
@@ -129,7 +129,7 @@ export default async function ChannelPage({
             className="grid gap-3"
           >
             <p>このチャンネルにはまだ参加していません。</p>
-            <Button type="submit">参加する</Button>
+            <Button type="submit">チャンネルに参加する</Button>
           </form>
         </div>
       )}

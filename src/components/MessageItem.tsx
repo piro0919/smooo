@@ -60,7 +60,7 @@ export function MessageItem({ m, userId, orgId }: { m: Item; userId: string; org
           <div className="mt-2 grid gap-2 rounded-lg border border-[#1164a3]/30 bg-[#1164a3]/5 p-3">
             <p className="text-xs text-muted-foreground">
               あなたの AI からの質問 ・ {deadline.format(new Date(m.question.deadline))} までに答えないと、AI
-              が代わりに返します
+              が代わりに返事をします
             </p>
             <p className="text-sm font-bold">{m.question.prompt}</p>
             <QuestionCard orgId={orgId} questionId={m.question.id} options={m.question.options} />

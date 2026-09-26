@@ -12,7 +12,7 @@ export default async function JoinPage({ params }: PageProps<"/join/[token]">) {
   if (error || !target) {
     return (
       <main className="flex flex-1 items-center justify-center p-8 text-center text-muted-foreground">
-        この招待のリンクは使えません。期限が切れているか、間違っている可能性があります。
+        この招待リンクは使えません。有効期限が切れているか、URL が間違っています。
       </main>
     );
   }

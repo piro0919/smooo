@@ -25,7 +25,7 @@ export default async function OrgHome({ params }: PageProps<"/o/[orgId]">) {
 
   return (
     <div className="flex flex-1 items-center justify-center p-8 text-center text-muted-foreground">
-      まだチャンネルがありません。左の「チャンネルを追加する」から作れます。
+      まだチャンネルがありません。「チャンネルを追加する」から作成できます。
     </div>
   );
 }

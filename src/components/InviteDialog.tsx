@@ -59,11 +59,11 @@ export function InviteDialog({
         ) : (
           <form action={action}>
             <Button type="submit" disabled={pending}>
-              招待のリンクを作る
+              招待リンクを作成する
             </Button>
           </form>
         )}
-        {state.url && <p className="text-xs text-muted-foreground">リンクは7日で切れます。</p>}
+        {state.url && <p className="text-xs text-muted-foreground">リンクの有効期限は7日間です。</p>}
         {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       </DialogContent>
     </Dialog>

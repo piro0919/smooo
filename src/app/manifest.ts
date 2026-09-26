@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Smooo",
     short_name: "Smooo",
-    description: "打ったとおりには、投稿されないチャット",
+    description: "やり取りは、AI が進めるチャット",
     start_url: "/",
     display: "standalone",
     background_color: "#3f0e40",

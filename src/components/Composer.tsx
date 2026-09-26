@@ -42,7 +42,7 @@ export function Composer({
           <input type="hidden" name={target.kind === "correct" ? "corrects" : "reply_to"} value={target.id} />
           <div className="flex items-center gap-2 rounded-t-lg border border-b-0 border-zinc-300 bg-zinc-50 px-3 py-1.5 text-xs">
             <span className="shrink-0 font-bold">
-              {target.kind === "correct" ? "訂正する投稿" : `${target.author}さんへの返信`}
+              {target.kind === "correct" ? "訂正するメッセージ" : `${target.author}さんへの返信`}
             </span>
             <span className="truncate text-muted-foreground">{target.body}</span>
             <button
@@ -65,7 +65,7 @@ export function Composer({
           rows={3}
           key={state.raw ?? "composer"}
           defaultValue={state.raw}
-          placeholder={`${placeholder}。雑に打って大丈夫です`}
+          placeholder={`${placeholder}。雑に書いても AI が整えます`}
           readOnly={pending}
           className="block w-full resize-none bg-transparent px-3 py-2 text-[15px] outline-none"
           onKeyDown={(e) => {
@@ -77,10 +77,10 @@ export function Composer({
         <div className="flex items-center justify-between px-2 pb-2">
           <span className="text-xs text-muted-foreground">
             {pending
-              ? "文面を整えています…"
+              ? "AI が文面を作成しています…"
               : target?.kind === "correct"
-                ? "訂正の内容を打ってください。元の投稿は残ります"
-                : "送った文章は整えてから投稿されます"}
+                ? "訂正の内容を入力してください。元のメッセージは残ります"
+                : "送信した文章は、AI が整えてから投稿します"}
           </span>
           <button
             type="submit"
