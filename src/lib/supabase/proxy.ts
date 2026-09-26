@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 
 // /api/cron はログインではなく CRON_SECRET で守る
-const PUBLIC_PATHS = ["/login", "/auth/", "/api/cron/"];
+const PUBLIC_PATHS = ["/login", "/auth/", "/api/cron/", "/manifest.webmanifest", "/apple-icon"];
 
 // リクエストのたびにセッションを更新し、Cookie を揃える。
 // ログインしていなければログイン画面へ送る。本当の権限の判定は RLS が行う

@@ -170,7 +170,10 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 - **A standalone app, not a Slack add-on.** On top of Slack, people could still post raw text,
   and the core would not hold.
 - **Web plus PWA.** iPhone only delivers notifications to a PWA added to the home screen, so
-  onboarding has to walk people through adding it. The manifest and icons are not made yet.
+  onboarding has to walk people through adding it. `manifest.ts` opens standalone. The icons
+  (`icon.svg`, `apple-icon.tsx`, a white S on Slack purple) are placeholders; the real one goes
+  through the usual ChatGPT icon workflow. iPhone needs the PNG `apple-icon`, not the SVG. Both
+  the manifest and the icon are in the proxy's public paths, or they redirect to /login.
 - **On phones the list and the channel are separate screens, as in Slack's app.** `OrgShell`
   shows only the sidebar at `/o/[orgId]` and only the content elsewhere; a back arrow returns
   to the list. The organisation home skips its jump to the first channel when the user agent
