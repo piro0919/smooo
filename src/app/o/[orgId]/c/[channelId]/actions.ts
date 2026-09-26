@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { formatFor, loadChannel, respondToMessage, reviseAfterCorrection } from "@/lib/ai/pipeline";
+import { capFor } from "@/lib/caps";
 import { loadMessages } from "@/lib/messages";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -50,6 +51,12 @@ export async function postMessage(
     if (corrects && parent.author_id !== user.id) return { error: "訂正できるのは自分の投稿だけです。", raw };
   }
 
+  // 上限に達していたら、AI を呼ぶ前に止める
+  const cap = await capFor(user.id, channelId);
+  if (cap.over) {
+    return { error: `今月の投稿数の上限（${cap.cap}件）に達しました。来月1日から、また投稿できます。`, raw };
+  }
+
   let body: string;
   try {
     body = await formatFor(user.id, await loadChannel(channelId), raw);
@@ -61,7 +68,7 @@ export async function postMessage(
   const admin = createAdminClient();
   const { data: message, error } = await admin
     .from("messages")
-    .insert({ channel_id: channelId, author_id: user.id, body, reply_to: target, corrects })
+    .insert({ channel_id: channelId, author_id: user.id, body, reply_to: target, corrects, billed_org_id: cap.orgId })
     .select("id")
     .single();
   if (error) return { error: "投稿できませんでした。", raw };

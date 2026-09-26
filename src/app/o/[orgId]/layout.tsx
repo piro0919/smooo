@@ -34,6 +34,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
     { data: dms },
     { data: orgPeople },
     { data: unreadIds },
+    { data: usage },
   ] = await Promise.all([
     supabase
       .from("memberships")
@@ -68,6 +69,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
       .select("user_id, role, profiles(display_name, avatar_url)")
       .eq("organization_id", orgId),
     supabase.rpc("unread_channel_ids"),
+    supabase.rpc("post_usage", { org: orgId }).maybeSingle(),
   ]);
   const unread = new Set(unreadIds ?? []);
   // 未読のあるチャンネルは、Slack と同じく名前を太字にする
@@ -211,6 +213,17 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[o
           )}
         </div>
         <div className="grid border-t border-white/10 p-2">
+          {usage && (
+            // 今月、この会社の枠から引いた投稿の数。上限に近づいたら色を変える
+            <p
+              className={cn(
+                "px-3 pb-1 text-xs opacity-70",
+                usage.used >= usage.cap * 0.9 && "font-bold text-[#ecb22e] opacity-100",
+              )}
+            >
+              今月の投稿 {usage.used.toLocaleString("ja-JP")} / {usage.cap.toLocaleString("ja-JP")} 件
+            </p>
+          )}
           <SettingsDialog
             autonomy={me?.autonomy ?? "standard"}
             name={me?.display_name ?? ""}

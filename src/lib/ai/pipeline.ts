@@ -10,6 +10,7 @@ import {
   type Autonomy,
   type Line,
 } from "./respond";
+import { capFor } from "@/lib/caps";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const RECENT = 20;
@@ -135,6 +136,12 @@ async function postAs(
   { continues, formatted }: { continues: boolean; formatted?: string },
 ) {
   const admin = createAdminClient();
+  // AI が書く分も枠から引く。上限に達していたら、整形の前に止めて何も出さない
+  const cap = await capFor(userId, channel.id);
+  if (cap.over) {
+    console.info("postAs: over the monthly cap", { userId, orgId: cap.orgId });
+    return null;
+  }
   const body = formatted ?? (await formatFor(userId, channel, draft));
   const { data: parent, error: parentError } = await admin
     .from("messages")
@@ -151,6 +158,7 @@ async function postAs(
       reply_to: replyTo,
       origin: "ai",
       depth: parent.depth + 1,
+      billed_org_id: cap.orgId,
     })
     .select("id")
     .single();

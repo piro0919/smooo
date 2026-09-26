@@ -59,6 +59,8 @@ ANTHROPIC_API_KEY=$(grep '^ANTHROPIC_API_KEY=' ../spatto/.env.local | cut -d= -f
 | `src/lib/ai/pipeline.ts` | Runs the above after a post, an answer, a correction, or a deadline, and posts in the person's name |
 | `supabase/migrations/` | Every table, policy, and function. The source of truth for the database |
 | `supabase/tests/` | pgTAP tests for who can see and write what. `npm run test:db` |
+| `src/lib/caps.ts` | Which organisation a post is billed to, and whether it is over its monthly cap |
+| `scripts/dev-seed.mjs` | Fills a fresh local database with people, a company, channels, and posts |
 | `evals/format/` | How the rewriting prompt and model were chosen |
 | `evals/decide/` | Whether the AI answers or asks, per autonomy level, against expected actions |
 | `scripts/dev-session.mjs`, `src/app/auth/dev/` | A local test user and a dev-only way in, to check screens without Google |
@@ -79,6 +81,12 @@ ANTHROPIC_API_KEY=$(grep '^ANTHROPIC_API_KEY=' ../spatto/.env.local | cut -d= -f
   against anything but a local Supabase. The script also prints the session cookie, for
   headless browsers. Google sign-in itself has not been tried: it needs an OAuth client with
   `http://127.0.0.1:55321/auth/v1/callback`, and its ID and secret in `supabase/.env`.
+- **Test data comes from `scripts/dev-seed.mjs`**, on a fresh database: 河村 (owner) and 佐藤
+  at 株式会社サンプル, 鈴木 outside it, #general, #client-x, a DM, a few posts. No model calls.
+- **Never edit a migration that has been applied, and don't run `supabase db reset` to pick up
+  a change.** Add a new migration and run `supabase migration up`. A reset wipes everything
+  someone was testing with; on 2026-09-26 it did, mid-session. If a reset happens anyway, run
+  the seed again and say so.
 - **Redirect to the host the request came in on, never `request.url`.** In dev, `request.url`
   says `localhost` even when the page was opened on 127.0.0.1, and the session cookie stays
   behind. `src/lib/origin.ts` builds it from the Host header.
@@ -208,6 +216,18 @@ answer, but asking is arguably right; it was left as written rather than changed
   requests. The answers are `general` memory, so the questions stay to things fine for
   outsiders to hear.
 
+### Post caps
+
+- **Each organisation has a monthly post cap,** 1000 for now (`private.default_post_cap()`,
+  overridable per organisation in `post_cap`) until plans are priced. Human posts and posts an
+  AI wrote in someone's name both count. The month starts at midnight Japan time.
+- **Which organisation pays is fixed when the post is written,** in `messages.billed_org_id`:
+  the channel's organisation if the author belongs to it, otherwise the author's own company
+  (their first non-personal organisation, else their personal one). So an outsider's posts in
+  a shared channel come out of their own company.
+- **At the cap, posting stops before the model is called,** with "今月の投稿数の上限に達しました";
+  the AI stops posting replies too. The sidebar shows "今月の投稿 n / cap 件", in yellow from 90%.
+
 ### Screens
 
 - **Slack is the reference for every screen.** Rail, purple sidebar, square avatars, bold
@@ -285,7 +305,7 @@ answer, but asking is arguably right; it was left as written rather than changed
 - **Smooo pays for the AI. No bring-your-own-key.** ChatGPT and Claude subscriptions do not
   include an API key, so BYOK would not spare anyone a second bill anyway.
 - **Free plan: a monthly cap on posts. Paid plan: a monthly fee that includes a cap, then
-  pay for what goes over.** Not built.
+  pay for what goes over.** The cap is built; plans and billing are not.
 - **Caps are counted per organisation.** Usage per person varies by orders of magnitude —
   about one post a day to a thousand — and pooling absorbs that.
 - **Most of the cost is input.** Keep what the model reads down to posts in the same topic.
@@ -334,7 +354,7 @@ written, so scores on it read high. Say the cost first; see "API spend".
 ## Not built yet
 
 - A queue for AI work, instead of `after()`.
-- Post caps and billing.
+- Plans and billing on top of the post cap.
 - Notifications.
 - Google sign-in, tried for real.
 - The real icon.

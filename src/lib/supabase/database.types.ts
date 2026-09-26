@@ -354,6 +354,7 @@ export type Database = {
       messages: {
         Row: {
           author_id: string
+          billed_org_id: string | null
           body: string
           channel_id: string
           corrects: string | null
@@ -365,6 +366,7 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          billed_org_id?: string | null
           body: string
           channel_id: string
           corrects?: string | null
@@ -376,6 +378,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          billed_org_id?: string | null
           body?: string
           channel_id?: string
           corrects?: string | null
@@ -391,6 +394,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_billed_org_id_fkey"
+            columns: ["billed_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
@@ -422,18 +432,21 @@ export type Database = {
           id: string
           name: string
           personal: boolean
+          post_cap: number | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
           personal?: boolean
+          post_cap?: number | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
           personal?: boolean
+          post_cap?: number | null
         }
         Relationships: []
       }
@@ -586,9 +599,20 @@ export type Database = {
           organization_id: string
         }[]
       }
+      billing_org_for: {
+        Args: { author: string; channel: string }
+        Returns: string
+      }
       create_dm: { Args: { org: string; other: string }; Returns: string }
       create_organization: { Args: { name: string }; Returns: string }
       leave_organization: { Args: { org: string }; Returns: undefined }
+      post_usage: {
+        Args: { org: string }
+        Returns: {
+          cap: number
+          used: number
+        }[]
+      }
       unread_channel_ids: { Args: never; Returns: string[] }
     }
     Enums: {
