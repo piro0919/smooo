@@ -148,6 +148,9 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   working-hours answer without asking.
 - **Everyone gets a personal organisation at sign-up.** A company organisation is created from
   the `+` on the rail, or joined through an invite link.
+- **A channel's name opens its details:** who is in it, outsiders marked 社外, and leaving
+  (not for DMs). The 社外 mark needs the owning company's member list, which guests cannot
+  read, so a guest sees the list without marks.
 - **Members are listed from "⋯" next to the organisation name, where you can also leave.**
   `leave_organization` also takes you out of that company's channels and DMs. Nobody can leave
   their personal organisation, and the last owner cannot leave a company — nobody would be

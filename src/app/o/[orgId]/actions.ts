@@ -84,3 +84,14 @@ export async function leaveOrganization(orgId: string): Promise<LeaveState> {
   }
   redirect("/");
 }
+
+export async function leaveChannel(orgId: string, channelId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  await supabase.from("channel_members").delete().eq("channel_id", channelId).eq("user_id", user.id);
+  revalidatePath(`/o/${orgId}`, "layout");
+  redirect(`/o/${orgId}`);
+}

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Globe, Hash, UserPlus } from "lucide-react";
 import { AiTyping } from "@/components/AiTyping";
 import { BackToList } from "@/components/BackToList";
+import { ChannelDetailsDialog } from "@/components/ChannelDetailsDialog";
 import { Composer } from "@/components/Composer";
 import { ComposerTargetProvider } from "@/components/ComposerTarget";
 import { LiveRefresh } from "@/components/LiveRefresh";
@@ -23,7 +24,7 @@ export default async function ChannelPage({
     supabase
       .from("channels")
       .select(
-        "id, name, kind, audience, organization_id, organizations(name), channel_members(user_id, profiles(display_name))",
+        "id, name, kind, audience, organization_id, organizations(name), channel_members(user_id, profiles(display_name, avatar_url))",
       )
       .eq("id", channelId)
       .maybeSingle(),
@@ -46,6 +47,21 @@ export default async function ChannelPage({
         ?.profiles?.display_name ?? "?")
     : channel.name!;
 
+  // 参加者のうち、チャンネルの持ち主の会社に属していない人に「社外」と添える。
+  // 所属の一覧はその会社の人にしか見えないので、社外から招かれた人の画面では添えない
+  const { data: insiders } = isGuest
+    ? { data: null }
+    : await supabase.from("memberships").select("user_id").eq("organization_id", channel.organization_id);
+  const inside = new Set((insiders ?? []).map((m) => m.user_id));
+  const people = channel.channel_members
+    .map((m) => ({
+      id: m.user_id,
+      name: m.profiles?.display_name ?? "?",
+      avatarUrl: m.profiles?.avatar_url ?? null,
+      company: insiders && !inside.has(m.user_id) ? "社外" : null,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ja"));
+
   const LATEST = 100;
   const messages = isMember ? await loadMessages(supabase, channelId, { limit: LATEST }) : [];
 
@@ -53,8 +69,16 @@ export default async function ChannelPage({
     <>
       <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4 md:px-5">
         <BackToList orgId={orgId} />
-        {!isDm && <Icon className="size-4" />}
-        <h2 className="truncate text-lg font-bold">{title}</h2>
+        <ChannelDetailsDialog
+          orgId={orgId}
+          channelId={channelId}
+          title={isDm ? title : `#${title}`}
+          canLeave={isMember && !isDm}
+          members={people}
+        >
+          {!isDm && <Icon className="size-4 shrink-0" />}
+          <h2 className="truncate text-lg font-bold">{title}</h2>
+        </ChannelDetailsDialog>
         {isDm ? null : isGuest ? (
           <span className="hidden truncate text-sm text-muted-foreground md:inline">
             {channel.organizations?.name} とのチャンネル
