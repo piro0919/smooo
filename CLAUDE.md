@@ -35,7 +35,7 @@ Rough cost, measured or estimated on 2026-09-26:
 | `evals/decide/run.mts 3` | 144, with thinking | ¥150–450 — the thinking tokens were never measured |
 
 The dev server does not get the key by default: `.env.local` has no `ANTHROPIC_API_KEY`, and
-without it posting shows "文面を整えられませんでした" and no AI replies. Start the server with the
+without it posting shows "AI が文面を作成できませんでした" and no AI replies. Start the server with the
 key only when asked to:
 
 ```sh
@@ -225,8 +225,8 @@ answer, but asking is arguably right; it was left as written rather than changed
   the channel's organisation if the author belongs to it, otherwise the author's own company
   (their first non-personal organisation, else their personal one). So an outsider's posts in
   a shared channel come out of their own company.
-- **At the cap, posting stops before the model is called,** with "今月の投稿数の上限に達しました";
-  the AI stops posting replies too. The sidebar shows "今月の投稿 n / cap 件", in yellow from 90%.
+- **At the cap, posting stops before the model is called,** with "今月のメッセージ数が上限の1000件に達しました";
+  the AI stops posting replies too. The sidebar shows "今月のメッセージ n / cap 件", in yellow from 90%.
 
 ### Screens
 
@@ -242,7 +242,7 @@ answer, but asking is arguably right; it was left as written rather than changed
 - **Unread channels are bold.** `channel_reads` keeps when each person last had a channel
   open; `unread_channel_ids()` runs with the caller's rights, so it only counts posts they can
   see, and never their own. The open channel is marked read whenever its newest post changes.
-- **A channel opens on its latest 100 posts.** "これより前の投稿を読み込む" adds 50 older ones at a
+- **A channel opens on its latest 100 posts.** "これより前のメッセージを読み込む" adds 50 older ones at a
   time. The list is stacked from the bottom (`flex-col-reverse`), so adding above does not move
   what is on screen.
 - **On phones the list and the channel are separate screens, as in Slack's app.** `OrgShell`
