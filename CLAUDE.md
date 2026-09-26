@@ -96,7 +96,9 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   silently drops every event.
 - **After a human post, the AI works in `after()`,** so the poster is not kept waiting. One call
   picks who has to answer; then, per person, one call decides "answer from memory" or "ask".
-  Either way something is posted in their name: the answer, or "確認して返します". Answering a
+  Either way something is posted in their name: the answer, or a fixed holding line —
+  "確認して返信します。" inside, "確認のうえ、ご返信いたします。" with outsiders. The holding line
+  skips the model; rewriting it once came out as "確認して返送いたします". Answering a
   question saves it to memory and posts the reply. Roughly 5 seconds end to end.
 - **How far the AI may answer is each person's setting,** `profiles.autonomy`: 慎重 answers only
   when memory holds this exact answer, 標準 only what memory and the conversation make certain,

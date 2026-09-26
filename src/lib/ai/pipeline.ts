@@ -132,10 +132,10 @@ async function postAs(
   channel: Channel,
   draft: string,
   replyTo: string,
-  { continues }: { continues: boolean },
+  { continues, formatted }: { continues: boolean; formatted?: string },
 ) {
   const admin = createAdminClient();
-  const body = await formatFor(userId, channel, draft);
+  const body = formatted ?? (await formatFor(userId, channel, draft));
   const { data: parent, error: parentError } = await admin
     .from("messages")
     .select("depth")
@@ -243,14 +243,17 @@ export async function respondToMessage(messageId: string) {
           deadline: new Date(Date.now() + hours * 3600_000).toISOString(),
         });
         if (error) throw error;
+
+        // 確認しに行ったことを決まった一言で返す。AI に整えさせると
+        // 「確認して返送いたします」のように崩れることがあり、毎回ほぼ同じ文なので呼び出しも要らない
+        const holding = channel.audience === "external" ? "確認のうえ、ご返信いたします。" : "確認して返信します。";
+        await postAs(user_id, channel, "確認して返します", message.id, { continues: false, formatted: holding });
+        return;
       }
-      // 答えられるなら答えを、聞くなら「確認します」の一言を、本人の名前で返す
       // 相手の投稿をそのまま繰り返しただけの返事は出さない。立場を取り違えたときに起きた
       const same = (a: string) => a.replace(/[\s。、！？!?]/g, "");
       if (decision.draft.trim() && same(decision.draft) !== same(message.body)) {
-        await postAs(user_id, channel, decision.draft, message.id, {
-          continues: decision.action === "answer",
-        });
+        await postAs(user_id, channel, decision.draft, message.id, { continues: true });
       }
     }),
   );
