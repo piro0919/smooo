@@ -36,6 +36,7 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
 | `src/app/o/[orgId]/` | The Slack-shaped screen: organisation rail, channel list, channel |
 | `src/app/o/[orgId]/c/[channelId]/actions.ts` | Posting: check membership, rewrite, then write with the secret key |
 | `src/lib/messages.ts` | Loads a page of posts with their reactions and the viewer's own drafts |
+| `evals/decide/` | Whether the AI answers or asks, per autonomy level, against expected actions |
 | `src/lib/ai/respond.ts` | Who has to answer a post, whether their AI can answer or must ask, and drafting from an answer |
 | `src/lib/ai/pipeline.ts` | Runs the above after a post or an answer, and posts in the person's name |
 | `src/app/api/cron/deadlines/` | Every 5 minutes: answer for people who let a question expire. Guarded by `CRON_SECRET` |
@@ -100,11 +101,18 @@ chat app where AI polishes your messages" and it loses to pasting ChatGPT output
   "確認して返信します。" inside, "確認のうえ、ご返信いたします。" with outsiders. The holding line
   skips the model; rewriting it once came out as "確認して返送いたします". Answering a
   question saves it to memory and posts the reply. Roughly 5 seconds end to end.
-- **How far the AI may answer is each person's setting,** `profiles.autonomy`: 慎重 answers only
-  when memory holds this exact answer, 標準 only what memory and the conversation make certain,
-  任せる whatever follows reasonably, asking only about money, contracts, people decisions, big
-  commitments, or when there is nothing to go on. Checked on 2026-09-26: the same light request
-  ("議事録お願いできる？") was accepted under 任せる and turned into a question under 標準.
+- **How far the AI may answer is each person's setting,** `profiles.autonomy`. 慎重 only repeats
+  facts already stated and never makes a new commitment. 標準 answers what memory and the
+  conversation make certain, and never takes on a request from a tendency like "基本的に引き受ける".
+  任せる accepts everyday things — lunch, small tasks, a meeting in free time — and asks only
+  about money, contracts, personnel, leave, big commitments, or when there is nothing to go on.
+- **`evals/decide/` measures that line.** 16 cases × 3 levels × 3 runs. The first version of
+  the prompts committed when it should have asked six times (慎重 turned "午後なら空いている"
+  into "15時から大丈夫です"), and 任せる asked about lunch. After rewriting the levels
+  (`results.md`, 2026-09-26): 慎重 48/48, 標準 45/48, 任せる 46/48, and every miss is on the
+  safe side — asking when it could have answered. Case 6 (19:00 against a 9–18 day) expects an
+  answer, but asking is arguably right; it was left as written rather than changed after the
+  fact. Rerun it three times after touching `LIMITS` or the `decide` prompt.
 - **Past the deadline, `answerOverdueQuestions` flips `open` to `expired` and answers only the
   rows it flipped,** so overlapping cron runs cannot answer twice. The reply is yes-and, may
   commit, and is not saved to memory: nobody said it. Every-5-minutes cron needs Vercel's paid

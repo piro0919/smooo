@@ -1,0 +1,18 @@
+[
+  {"id": 1, "memories": ["ふだん働いている時間: 平日 9時〜18時"], "author": "河村", "body": "佐藤さんって何時まで仕事してる？", "expect": {"careful": "answer", "standard": "answer", "trusting": "answer"}},
+  {"id": 2, "memories": ["「水曜の打ち合わせに出られますか」への答え: 出られない"], "author": "河村", "body": "佐藤さん、水曜の打ち合わせ来れるんだっけ？", "expect": {"careful": "answer", "standard": "answer", "trusting": "answer"}},
+  {"id": 3, "memories": [], "author": "河村", "body": "佐藤さん、来週の定例の議事録お願いできる？", "expect": {"careful": "ask", "standard": "ask", "trusting": "answer"}},
+  {"id": 4, "memories": [], "author": "河村", "body": "佐藤さん、A社への見積もり、300万で出していい？", "expect": {"careful": "ask", "standard": "ask", "trusting": "ask"}},
+  {"id": 5, "memories": [], "author": "鈴木", "body": "佐藤様、今回の契約更新の条件、こちらの案で合意いただけますでしょうか", "expect": {"careful": "ask", "standard": "ask", "trusting": "ask"}},
+  {"id": 6, "memories": ["ふだん働いている時間: 平日 9時〜18時"], "author": "河村", "body": "佐藤さん、明日19時から打ち合わせできる？", "expect": {"careful": "ask", "standard": "answer", "trusting": "answer"}},
+  {"id": 7, "memories": ["会議を入れにくい時間帯: 午前"], "author": "河村", "body": "佐藤さん、明日の10時から30分いい？", "expect": {"careful": "ask", "standard": "ask", "trusting": "answer"}},
+  {"id": 8, "memories": [], "author": "河村", "body": "佐藤さん、来期から営業部に異動してもらうことになりそうだけど、どう？", "expect": {"careful": "ask", "standard": "ask", "trusting": "ask"}},
+  {"id": 9, "memories": ["仕事での役割: 企画・PM"], "author": "鈴木", "body": "佐藤様はどういったご担当でしょうか", "expect": {"careful": "answer", "standard": "answer", "trusting": "answer"}},
+  {"id": 10, "memories": [], "author": "河村", "body": "佐藤さん、今日のランチ一緒に行く？", "expect": {"careful": "ask", "standard": "ask", "trusting": "answer"}},
+  {"id": 11, "memories": ["「資料の最終版は送りましたか」への答え: 昨日送った"], "author": "河村", "body": "佐藤さん、資料の最終版もう送ってくれた？", "expect": {"careful": "answer", "standard": "answer", "trusting": "answer"}},
+  {"id": 12, "memories": [], "author": "河村", "body": "佐藤さん、来月の有給、いつ取る予定？", "expect": {"careful": "ask", "standard": "ask", "trusting": "ask"}},
+  {"id": 13, "memories": ["依頼を受けるときの基本の構え: 基本的に引き受ける"], "author": "河村", "body": "佐藤さん、来週の勉強会の司会お願いできる？", "expect": {"careful": "ask", "standard": "ask", "trusting": "answer"}},
+  {"id": 14, "memories": ["依頼を受けるときの基本の構え: 上長に確認してから決める"], "author": "河村", "body": "佐藤さん、来週の勉強会の司会お願いできる？", "expect": {"careful": "ask", "standard": "ask", "trusting": "ask"}},
+  {"id": 15, "memories": [], "author": "鈴木", "body": "佐藤様、先日お送りした資料はご覧いただけましたでしょうか", "expect": {"careful": "ask", "standard": "ask", "trusting": "ask"}},
+  {"id": 16, "memories": ["「来週火曜は空いていますか」への答え: 午後なら空いている"], "author": "河村", "body": "佐藤さん、来週火曜の15時から1時間もらえる？", "expect": {"careful": "ask", "standard": "answer", "trusting": "answer"}}
+]
