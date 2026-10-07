@@ -51,6 +51,8 @@ export async function formatMessage(
     model: MODEL,
     max_tokens: 1024,
     output_config: { effort: "low", format: zodOutputFormat(Message) },
+    // 2026-10-07 時点の SYSTEM は 562 トークンで、Sonnet 5 のキャッシュの最小 1024 に届かず効いていない。
+    // エラーは出ない。指示文が伸びるか、最小 512 のモデルに移ったら効き始める
     system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: `相手: ${to}\n入力: ${raw}` }],
   });
