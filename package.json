@@ -31,6 +31,7 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
+    "@piro0919/eslint-config": "github:piro0919/eslint-config#v1.0.0",
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.6",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20.19.43",
