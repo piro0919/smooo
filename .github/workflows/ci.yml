@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: supabase/setup-cli@v3
         with:
-          # latest を引くと GitHub の問い合わせ回数の制限で落ちることがある。手元と同じ版に固定する
-          version: 3.2.0
+          # latest を引くと GitHub の問い合わせ回数の制限で落ちることがある。手元と同じ版に固定する。v3 は config.toml の [inbucket] を受け付けない
+          version: 2.84.2
       - run: supabase db start
       - run: supabase test db
