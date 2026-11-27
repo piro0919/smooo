@@ -30,6 +30,6 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           # latest を引くと GitHub の問い合わせ回数の制限で落ちることがある。手元と同じ版に固定する。v3 は config.toml の [inbucket] を受け付けない
-          version: 2.84.2
+          version: 3.4.0
       - run: supabase db start
       - run: supabase test db
